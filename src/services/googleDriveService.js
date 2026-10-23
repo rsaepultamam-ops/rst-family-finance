@@ -12,9 +12,10 @@ const SCOPES = [
  * Get OAuth2 Client instance
  */
 function getOAuth2Client() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/sync/oauth2callback';
+  require('dotenv').config();
+  let clientId = (process.env.GOOGLE_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
+  let clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim().replace(/^["']|["']$/g, '');
+  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/sync/oauth2callback').trim();
 
   if (!clientId || !clientSecret) return null;
 
