@@ -51,21 +51,31 @@ const DEFAULT_CATEGORIES = [
   { id: 'CAT-105', nama: 'Lain-lain', tipe: 'Pemasukan', ikon: '📦', warna: '#6B7280', aktif: true, custom: false, dibuatOleh: 'system' }
 ];
 
+let isInitializing = false;
+
 /**
  * Initialize default Excel file if it does not exist
  */
 async function initExcel() {
-  // Cek apakah Google Drive terkonfigurasi dan unduh file terbaru jika tersedia
-  try {
-    const { downloadFromDrive } = require('./googleDriveService');
-    await downloadFromDrive();
-  } catch (e) {
-    // Abaikan jika belum dikonfigurasi atau offline
-  }
+  if (isInitializing) return;
 
   if (fs.existsSync(EXCEL_PATH)) {
     return;
   }
+
+  isInitializing = true;
+  try {
+    // Cek apakah Google Drive terkonfigurasi dan unduh file terbaru jika tersedia
+    try {
+      const { downloadFromDrive } = require('./googleDriveService');
+      await downloadFromDrive();
+    } catch (e) {
+      // Abaikan jika belum dikonfigurasi atau offline
+    }
+
+    if (fs.existsSync(EXCEL_PATH)) {
+      return;
+    }
 
   const adminPasswordHash = await hashPassword('admin123');
   const sitiPasswordHash = await hashPassword('siti123');
@@ -232,7 +242,10 @@ async function initExcel() {
   XLSX.utils.book_append_sheet(wb, wsNotif, 'Notifikasi_Log');
   XLSX.utils.book_append_sheet(wb, wsSettings, 'Settings');
 
-  XLSX.writeFile(wb, EXCEL_PATH);
+    XLSX.writeFile(wb, EXCEL_PATH);
+  } finally {
+    isInitializing = false;
+  }
 }
 
 /**
@@ -245,17 +258,28 @@ function readWorkbook() {
   return XLSX.readFile(EXCEL_PATH, { cellDates: false });
 }
 
+let isSyncingToDrive = false;
+
 /**
  * Write workbook to disk safely and auto sync to Google Drive
  */
-function writeWorkbook(wb) {
+function writeWorkbook(wb, syncToDrive = true) {
   XLSX.writeFile(wb, EXCEL_PATH);
 
-  // Auto upload to Google Drive if credentials exist
-  try {
-    const { uploadToDrive } = require('./googleDriveService');
-    uploadToDrive().catch(err => console.error('[DRIVE AUTO-SYNC ERROR]', err.message));
-  } catch (err) {}
+  // Auto upload to Google Drive if credentials exist and not currently syncing
+  if (syncToDrive && !isSyncingToDrive) {
+    try {
+      const { uploadToDrive } = require('./googleDriveService');
+      isSyncingToDrive = true;
+      uploadToDrive()
+        .catch(err => console.error('[DRIVE AUTO-SYNC ERROR]', err.message))
+        .finally(() => {
+          isSyncingToDrive = false;
+        });
+    } catch (err) {
+      isSyncingToDrive = false;
+    }
+  }
 }
 
 // ============================================
@@ -629,7 +653,10 @@ async function deleteUser(id) {
 // ============================================
 
 async function getSettings() {
-  await initExcel();
+  if (!fs.existsSync(EXCEL_PATH)) {
+    await initExcel();
+  }
+  if (!fs.existsSync(EXCEL_PATH)) return {};
   const wb = readWorkbook();
   const ws = wb.Sheets['Settings'];
   if (!ws) return {};
@@ -662,7 +689,7 @@ async function updateSetting(key, value) {
     }
 
     wb.Sheets['Settings'] = XLSX.utils.json_to_sheet(list);
-    writeWorkbook(wb);
+    writeWorkbook(wb, false);
     return { [key]: value };
   });
 }
@@ -694,7 +721,7 @@ async function addNotificationLog(logData) {
 
     list.push(newLog);
     wb.Sheets['Notifikasi_Log'] = XLSX.utils.json_to_sheet(list);
-    writeWorkbook(wb);
+    writeWorkbook(wb, false);
     return newLog;
   });
 }

@@ -4,8 +4,7 @@ const { google } = require('googleapis');
 const { getSettings, updateSetting, getExcelFilePath } = require('./excelService');
 
 const SCOPES = [
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive'
+  'https://www.googleapis.com/auth/drive.file'
 ];
 
 /**
