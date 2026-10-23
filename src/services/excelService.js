@@ -55,6 +55,14 @@ const DEFAULT_CATEGORIES = [
  * Initialize default Excel file if it does not exist
  */
 async function initExcel() {
+  // Cek apakah Google Drive terkonfigurasi dan unduh file terbaru jika tersedia
+  try {
+    const { downloadFromDrive } = require('./googleDriveService');
+    await downloadFromDrive();
+  } catch (e) {
+    // Abaikan jika belum dikonfigurasi atau offline
+  }
+
   if (fs.existsSync(EXCEL_PATH)) {
     return;
   }
@@ -238,10 +246,16 @@ function readWorkbook() {
 }
 
 /**
- * Write workbook to disk safely
+ * Write workbook to disk safely and auto sync to Google Drive
  */
 function writeWorkbook(wb) {
   XLSX.writeFile(wb, EXCEL_PATH);
+
+  // Auto upload to Google Drive if credentials exist
+  try {
+    const { uploadToDrive } = require('./googleDriveService');
+    uploadToDrive().catch(err => console.error('[DRIVE AUTO-SYNC ERROR]', err.message));
+  } catch (err) {}
 }
 
 // ============================================
