@@ -547,10 +547,20 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+              <a href="/api/sync/auth" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <span>🔗</span> Hubungkan Akun Google Drive (1-Klik)
+              </a>
               <button type="button" class="btn-secondary" onclick="downloadExcelFile()">
                 <span>📥</span> Download File Excel (.xlsx) Lengkap
               </button>
+            </div>
+
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 14px; font-size: 13px; color: #1e40af;">
+              <strong>💡 Cara Menghubungkan Google Drive:</strong>
+              <p style="margin-top: 4px;">
+                Di Google Cloud Console proyek Anda (<strong>dompetharian-501510</strong>), buat <em>OAuth 2.0 Client ID (Web Application)</em>, lalu masukkan <code>GOOGLE_CLIENT_ID</code> dan <code>GOOGLE_CLIENT_SECRET</code> ke file <code>.env</code> (atau Vercel Environment Variables). Setelah itu klik tombol biru di atas untuk mengizinkan akses sekali klik.
+              </p>
             </div>
           </div>
 

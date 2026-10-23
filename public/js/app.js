@@ -24,6 +24,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof initReportSelectors === 'function') initReportSelectors();
   if (typeof initTransactionFilters === 'function') initTransactionFilters();
 
+  // Check if redirected from Google OAuth
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('sync') === 'success') {
+    showToast('🎉 Google Drive berhasil terhubung! Data keuangan keluarga otomatis tersinkronisasi.', 'success', 6000);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
   // Initial Sync Status Check
   updateGlobalSyncIndicator();
 
