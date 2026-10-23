@@ -51,34 +51,16 @@ const DEFAULT_CATEGORIES = [
   { id: 'CAT-105', nama: 'Lain-lain', tipe: 'Pemasukan', ikon: '📦', warna: '#6B7280', aktif: true, custom: false, dibuatOleh: 'system' }
 ];
 
-let isInitializing = false;
+let initPromise = null;
 
 /**
- * Initialize default Excel file if it does not exist
+ * Create default workbook synchronously so that readWorkbook never fails
  */
-async function initExcel() {
-  if (isInitializing) return;
+function createDefaultWorkbookSync() {
+  if (fs.existsSync(EXCEL_PATH)) return;
 
-  if (fs.existsSync(EXCEL_PATH)) {
-    return;
-  }
-
-  isInitializing = true;
-  try {
-    // Cek apakah Google Drive terkonfigurasi dan unduh file terbaru jika tersedia
-    try {
-      const { downloadFromDrive } = require('./googleDriveService');
-      await downloadFromDrive();
-    } catch (e) {
-      // Abaikan jika belum dikonfigurasi atau offline
-    }
-
-    if (fs.existsSync(EXCEL_PATH)) {
-      return;
-    }
-
-  const adminPasswordHash = await hashPassword('admin123');
-  const sitiPasswordHash = await hashPassword('siti123');
+  const adminPasswordHash = '$2a$10$na9joBokngV/l2nAyv/9kO9UcW0/PreOVJ4ICJNRQ3CSIKeOZnJfy'; // admin123
+  const sitiPasswordHash = '$2a$10$QqLSCBA6mR3ftT0MjKR4WeUCUEegeTn8c18UF2IcEfESm.0EkKwQm'; // siti123
 
   const defaultUsers = [
     {
@@ -242,10 +224,46 @@ async function initExcel() {
   XLSX.utils.book_append_sheet(wb, wsNotif, 'Notifikasi_Log');
   XLSX.utils.book_append_sheet(wb, wsSettings, 'Settings');
 
-    XLSX.writeFile(wb, EXCEL_PATH);
-  } finally {
-    isInitializing = false;
+  XLSX.writeFile(wb, EXCEL_PATH);
+}
+
+/**
+ * Initialize default Excel file if it does not exist
+ */
+async function initExcel() {
+  if (fs.existsSync(EXCEL_PATH)) {
+    return;
   }
+
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = (async () => {
+    try {
+      if (fs.existsSync(EXCEL_PATH)) {
+        return;
+      }
+
+      // Cek apakah Google Drive terkonfigurasi dan unduh file terbaru jika tersedia
+      try {
+        const { downloadFromDrive } = require('./googleDriveService');
+        await downloadFromDrive();
+      } catch (e) {
+        // Abaikan jika belum dikonfigurasi atau offline
+      }
+
+      if (fs.existsSync(EXCEL_PATH)) {
+        return;
+      }
+
+      createDefaultWorkbookSync();
+    } finally {
+      initPromise = null;
+    }
+  })();
+
+  return initPromise;
 }
 
 /**
@@ -253,7 +271,7 @@ async function initExcel() {
  */
 function readWorkbook() {
   if (!fs.existsSync(EXCEL_PATH)) {
-    throw new Error('Database Excel belum siap.');
+    createDefaultWorkbookSync();
   }
   return XLSX.readFile(EXCEL_PATH, { cellDates: false });
 }
@@ -652,21 +670,29 @@ async function deleteUser(id) {
 // SETTINGS & LOGS SERVICES
 // ============================================
 
-async function getSettings() {
+async function getSettings(autoInit = true) {
   if (!fs.existsSync(EXCEL_PATH)) {
-    await initExcel();
+    if (autoInit && !initPromise) {
+      await initExcel();
+    } else {
+      createDefaultWorkbookSync();
+    }
   }
   if (!fs.existsSync(EXCEL_PATH)) return {};
-  const wb = readWorkbook();
-  const ws = wb.Sheets['Settings'];
-  if (!ws) return {};
+  try {
+    const wb = readWorkbook();
+    const ws = wb.Sheets['Settings'];
+    if (!ws) return {};
 
-  const list = XLSX.utils.sheet_to_json(ws) || [];
-  const settingsObj = {};
-  list.forEach(row => {
-    settingsObj[row.Key] = row.Value;
-  });
-  return settingsObj;
+    const list = XLSX.utils.sheet_to_json(ws) || [];
+    const settingsObj = {};
+    list.forEach(row => {
+      settingsObj[row.Key] = row.Value;
+    });
+    return settingsObj;
+  } catch (err) {
+    return {};
+  }
 }
 
 async function updateSetting(key, value) {

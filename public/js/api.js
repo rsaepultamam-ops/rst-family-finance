@@ -46,8 +46,8 @@ const API = {
         headers
       });
 
-      // Handle session expiration
-      if (res.status === 401) {
+      // Handle session expiration (ignore on login endpoint)
+      if (res.status === 401 && !endpoint.includes('/api/auth/login')) {
         this.clearSession();
         if (!window.location.pathname.endsWith('login.html')) {
           window.location.href = '/login.html';
@@ -55,7 +55,7 @@ const API = {
         throw new Error('Sesi Anda telah kedaluwarsa. Silakan login kembali.');
       }
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(json.message || 'Terjadi kesalahan pada server');
       }

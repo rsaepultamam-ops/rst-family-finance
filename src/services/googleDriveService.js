@@ -72,10 +72,15 @@ async function handleOAuth2Callback(code) {
  * Initialize Google Drive Client (Supports OAuth 2.0 or Service Account)
  */
 async function getDriveClient() {
-  const settings = await getSettings();
+  let settings = {};
+  try {
+    settings = await getSettings(false);
+  } catch (err) {
+    settings = {};
+  }
 
   // Option 1: OAuth 2.0 with stored refresh token (Most user-friendly!)
-  const refreshToken = settings.google_refresh_token;
+  const refreshToken = (process.env.GOOGLE_REFRESH_TOKEN || settings.google_refresh_token || '').trim();
   if (refreshToken && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({ refresh_token: refreshToken });

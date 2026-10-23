@@ -48,28 +48,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function populateUserInfo(user) {
+  const u = user || {};
+  const nama = u.Nama || u.nama || 'Pengguna';
+  const role = u.Role || u.role || 'anggota';
+
   // Sidebar user card
   const elAvatar = document.getElementById('user-sidebar-avatar');
   const elName = document.getElementById('user-sidebar-name');
   const elRole = document.getElementById('user-sidebar-role');
 
-  if (elAvatar) elAvatar.textContent = user.Nama.charAt(0).toUpperCase();
-  if (elName) elName.textContent = user.Nama;
+  if (elAvatar) elAvatar.textContent = nama.charAt(0).toUpperCase();
+  if (elName) elName.textContent = nama;
   if (elRole) {
-    elRole.textContent = user.Role === 'admin' ? 'Kepala Keluarga (Admin)' : 'Anggota';
-    if (user.Role === 'admin') elRole.classList.add('admin');
+    elRole.textContent = role === 'admin' ? 'Kepala Keluarga (Admin)' : 'Anggota';
+    if (role === 'admin') elRole.classList.add('admin');
   }
 
   // Header user pill
   const elHeaderAvatar = document.getElementById('header-user-avatar');
   const elHeaderName = document.getElementById('header-user-name');
-  if (elHeaderAvatar) elHeaderAvatar.textContent = user.Nama.charAt(0).toUpperCase();
-  if (elHeaderName) elHeaderName.textContent = user.Nama.split(' ')[0];
+  if (elHeaderAvatar) elHeaderAvatar.textContent = nama.charAt(0).toUpperCase();
+  if (elHeaderName) elHeaderName.textContent = nama.split(' ')[0];
 
   // Show/hide Admin only navigation
   const adminOnlyNav = document.querySelectorAll('.admin-only');
   adminOnlyNav.forEach(el => {
-    el.style.display = user.Role === 'admin' ? '' : 'none';
+    el.style.display = role === 'admin' ? '' : 'none';
   });
 }
 

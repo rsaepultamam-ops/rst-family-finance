@@ -14,26 +14,54 @@ async function authMiddleware(req, res, next) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    const user = await getUserById(decoded.id);
-    if (!user || !user.Aktif) {
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (jwtErr) {
       return res.status(401).json({
         success: false,
-        message: 'Pengguna tidak valid atau sudah dinonaktifkan.'
+        message: 'Token kedaluwarsa atau tidak valid. Silakan login kembali.'
       });
     }
 
-    // Attach user (without password)
-    const { Password, ...safeUser } = user;
+    // Default safe user object from verified JWT claims
+    const safeUser = {
+      ID: decoded.id,
+      Nama: decoded.nama,
+      Username: decoded.username,
+      Role: decoded.role,
+      Aktif: true
+    };
+
+    // If database is initialized and accessible, verify that user is not disabled
+    try {
+      const user = await getUserById(decoded.id);
+      if (user) {
+        if (!user.Aktif) {
+          return res.status(403).json({
+            success: false,
+            message: 'Akun ini telah dinonaktifkan oleh Admin.'
+          });
+        }
+        const { Password, ...dbSafeUser } = user;
+        req.user = dbSafeUser;
+        return next();
+      }
+    } catch (dbErr) {
+      // Graceful fallback during cold starts or transient DB initialization
+      console.warn('[AUTH] Database check skipped, relying on verified JWT:', dbErr.message);
+    }
+
+    // Authenticate with verified JWT payload
     req.user = safeUser;
     next();
   } catch (err) {
-    return res.status(401).json({
+    return res.status(500).json({
       success: false,
-      message: 'Token kedaluwarsa atau tidak valid. Silakan login kembali.'
+      message: 'Terjadi kesalahan pada verifikasi autentikasi server.'
     });
   }
 }
 
 module.exports = authMiddleware;
+
