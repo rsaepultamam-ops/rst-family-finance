@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RST Family Finance — Pencatatan Keuangan Keluarga</title>
+  <meta name="description" content="Aplikasi pencatatan keuangan keluarga modern dengan basis data Excel dan multi-user">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    .btn-emoji-select {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      border: 1px solid var(--border-light);
+      background: var(--bg-surface);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .btn-emoji-select:hover, .btn-emoji-select.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      transform: scale(1.1);
+    }
+    .btn-color-select {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px var(--border-light);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .btn-color-select:hover, .btn-color-select.active {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">💰</div>
+        <div class="brand-text">
+          <h1>RST Family</h1>
+          <span>Finance Tracker</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Menu Utama</div>
+        <button type="button" class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="transactions">
+          <span class="nav-icon">📝</span>
+          <span>Riwayat Transaksi</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="reports">
+          <span class="nav-icon">📈</span>
+          <span>Laporan Bulanan</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="categories">
+          <span class="nav-icon">🏷️</span>
+          <span>Kelola Kategori</span>
+        </button>
+
+        <div class="nav-section-title admin-only">Administrasi</div>
+        <button type="button" class="nav-item admin-only" data-tab="users">
+          <span class="nav-icon">👥</span>
+          <span>Anggota Keluarga</span>
+        </button>
+        <button type="button" class="nav-item admin-only" data-tab="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Pengaturan & Cloud</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge-card">
+          <div class="user-avatar" id="user-sidebar-avatar">U</div>
+          <div class="user-info">
+            <div class="user-name" id="user-sidebar-name">Memuat...</div>
+            <div class="user-role-badge" id="user-sidebar-role">Anggota</div>
+          </div>
+        </div>
+        <button type="button" class="btn-logout" onclick="logoutUser()">
+          <span>🚪</span> Keluar
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Sticky Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button type="button" class="mobile-menu-toggle" id="btn-mobile-toggle">☰</button>
+          <div class="page-title-box">
+            <h2 id="current-page-title">Dashboard Ringkasan</h2>
+            <p id="header-current-date">Memuat tanggal...</p>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Sync Indicator Badge -->
+          <div class="sync-badge" id="header-sync-badge" onclick="switchTab('settings')" title="Status Sinkronisasi">
+            <span class="sync-dot local" id="header-sync-dot"></span>
+            <span id="header-sync-text">Excel Lokal</span>
+          </div>
+
+          <!-- Quick Add Button -->
+          <button type="button" class="btn-primary" onclick="openTransactionModal()">
+            <span>➕</span> <span>Catat Transaksi</span>
+          </button>
+
+          <!-- User Quick Avatar -->
+          <div class="user-avatar" id="header-user-avatar" style="width: 38px; height: 38px; cursor: pointer;" onclick="switchTab('settings')">
+            U
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Body Container -->
+      <main class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- TAB 1: DASHBOARD                           -->
+        <!-- ========================================== -->
+        <section id="tab-dashboard" class="tab-pane active">
+          <!-- 4 Summary KPI Cards -->
+          <div class="summary-grid">
+            <div class="summary-card saldo">
+              <div class="summary-info">
+                <h4>Saldo Bulan Ini</h4>
+                <div class="summary-amount" id="dash-saldo">Rp 0</div>
+                <div class="summary-subtext" id="dash-comparison-badge">Memuat perbandingan...</div>
+              </div>
+              <div class="summary-icon-box blue">🏦</div>
+            </div>
+
+            <div class="summary-card pemasukan">
+              <div class="summary-info">
+                <h4>Total Pemasukan</h4>
+                <div class="summary-amount income" id="dash-pemasukan">Rp 0</div>
+                <div class="summary-subtext">Akumulasi bulan ini</div>
+              </div>
+              <div class="summary-icon-box green">💰</div>
+            </div>
+
+            <div class="summary-card pengeluaran">
+              <div class="summary-info">
+                <h4>Total Pengeluaran</h4>
+                <div class="summary-amount expense" id="dash-pengeluaran">Rp 0</div>
+                <div class="summary-subtext">Akumulasi bulan ini</div>
+              </div>
+              <div class="summary-icon-box red">💸</div>
+            </div>
+
+            <div class="summary-card hari-ini">
+              <div class="summary-info">
+                <h4>Pengeluaran Hari Ini</h4>
+                <div class="summary-amount expense" id="dash-hari-ini">Rp 0</div>
+                <div class="summary-subtext" id="dash-count-hari-ini">0 transaksi hari ini</div>
+              </div>
+              <div class="summary-icon-box amber">📅</div>
+            </div>
+          </div>
+
+          <!-- Dashboard Two Columns -->
+          <div class="dashboard-layout">
+            <!-- Left: Recent Transactions -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>🕒</span> Transaksi Terakhir
+                </div>
+                <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="switchTab('transactions')">
+                  Lihat Semua →
+                </button>
+              </div>
+
+              <div id="dash-recent-transactions" class="transaction-list">
+                <div class="empty-state">
+                  <div class="empty-state-icon">⏳</div>
+                  <p>Memuat data transaksi...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Quick Actions & Database Info -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <div class="card" style="background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%); border-color: #bfdbfe;">
+                <div class="card-title" style="margin-bottom: 12px;">
+                  <span>⚡</span> Catat Kilat
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                  Catat pengeluaran harian Anda hanya dalam 10 detik langsung ke file Excel.
+                </p>
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn-primary" style="flex: 1; justify-content: center;" onclick="openTransactionModal('Pengeluaran')">
+                    💸 Pengeluaran
+                  </button>
+                  <button type="button" class="btn-secondary" style="flex: 1; justify-content: center; border-color: #10b981; color: #047857;" onclick="openTransactionModal('Pemasukan')">
+                    💰 Pemasukan
+                  </button>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title" style="margin-bottom: 12px;">
+                  <span>📊</span> Basis Data Excel
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+                  Data keluarga Anda disimpan secara aman dan otomatis tersusun di file format Microsoft Excel (.xlsx).
+                </p>
+                <button type="button" class="btn-secondary" style="width: 100%; justify-content: center;" onclick="downloadExcelFile()">
+                  <span>📥</span> Download File Excel (.xlsx)
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: RIWAYAT TRANSAKSI                   -->
+        <!-- ========================================== -->
+        <section id="tab-transactions" class="tab-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>📝</span> Riwayat Seluruh Transaksi
+              </div>
+              <button type="button" class="btn-primary" onclick="openTransactionModal()">
+                <span>➕</span> Catat Transaksi Baru
+              </button>
+            </div>
+
+            <!-- Filter Controls Bar -->
+            <div class="filter-bar">
+              <div class="search-input-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="filter-search" placeholder="Cari keterangan atau kategori..." oninput="loadTransactionsTable(1)">
+              </div>
+
+              <select id="filter-tipe" class="filter-select" onchange="loadTransactionsTable(1)">
+                <option value="Semua">Semua Tipe</option>
+                <option value="Pengeluaran">Pengeluaran</option>
+                <option value="Pemasukan">Pemasukan</option>
+              </select>
+
+              <select id="filter-kategori" class="filter-select" onchange="loadTransactionsTable(1)">
+                <option value="Semua">Semua Kategori</option>
+              </select>
+
+              <select id="filter-user" class="filter-select" onchange="loadTransactionsTable(1)">
+                <option value="Semua">Semua Anggota</option>
+              </select>
+
+              <div class="filter-date-box">
+                <input type="date" id="filter-start-date" title="Dari tanggal" onchange="loadTransactionsTable(1)">
+                <span style="font-size: 12px; color: var(--text-muted);">-</span>
+                <input type="date" id="filter-end-date" title="Sampai tanggal" onchange="loadTransactionsTable(1)">
+              </div>
+
+              <button type="button" class="btn-secondary" style="padding: 8px 12px;" onclick="resetTransactionFilters()">
+                Reset
+              </button>
+            </div>
+
+            <!-- Filter Summary -->
+            <div id="tx-filter-summary" style="padding: 8px 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px;">
+              Memuat data...
+            </div>
+
+            <!-- Table Responsive -->
+            <div class="table-responsive">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Tipe</th>
+                    <th>Kategori</th>
+                    <th>Keterangan</th>
+                    <th>Pencatat</th>
+                    <th style="text-align: right;">Jumlah (Rp)</th>
+                    <th style="text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tx-table-body">
+                  <!-- Injected via transactions.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="tx-empty-state" class="empty-state" style="display: none;">
+              <div class="empty-state-icon">🔍</div>
+              <p>Tidak ada transaksi yang sesuai dengan filter pencarian.</p>
+            </div>
+
+            <!-- Pagination Container -->
+            <div class="pagination-container">
+              <div class="pagination-info" id="tx-pagination-info">Menampilkan halaman 1</div>
+              <div class="pagination-controls" id="tx-pagination-controls"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: LAPORAN BULANAN                     -->
+        <!-- ========================================== -->
+        <section id="tab-reports" class="tab-pane">
+          <!-- Month Selector Bar -->
+          <div class="card" style="padding: 16px 24px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="btn-secondary" onclick="changeReportMonth(-1)">◀ Bulan Lalu</button>
+                <div style="display: flex; gap: 8px;">
+                  <select id="report-month-select" class="filter-select"></select>
+                  <select id="report-year-select" class="filter-select"></select>
+                </div>
+                <button type="button" class="btn-secondary" onclick="changeReportMonth(1)">Bulan Berikutnya ▶</button>
+              </div>
+
+              <button type="button" class="btn-secondary" onclick="downloadExcelFile()">
+                <span>📊</span> Export Excel Bulan Ini
+              </button>
+            </div>
+          </div>
+
+          <!-- Monthly KPI Summary -->
+          <div class="summary-grid">
+            <div class="summary-card pemasukan">
+              <div class="summary-info">
+                <h4>Total Pemasukan</h4>
+                <div class="summary-amount income" id="rpt-pemasukan">Rp 0</div>
+                <div class="summary-subtext">Pemasukan bulan terpilih</div>
+              </div>
+              <div class="summary-icon-box green">💰</div>
+            </div>
+
+            <div class="summary-card pengeluaran">
+              <div class="summary-info">
+                <h4>Total Pengeluaran</h4>
+                <div class="summary-amount expense" id="rpt-pengeluaran">Rp 0</div>
+                <div class="summary-subtext" id="rpt-comparison-badge">Memuat vs bulan lalu...</div>
+              </div>
+              <div class="summary-icon-box red">💸</div>
+            </div>
+
+            <div class="summary-card saldo">
+              <div class="summary-info">
+                <h4>Sisa Saldo Bersih</h4>
+                <div class="summary-amount" id="rpt-saldo">Rp 0</div>
+                <div class="summary-subtext">Pemasukan dikurangi pengeluaran</div>
+              </div>
+              <div class="summary-icon-box blue">⚖️</div>
+            </div>
+
+            <div class="summary-card hari-ini">
+              <div class="summary-info">
+                <h4>Rata-rata Harian</h4>
+                <div class="summary-amount" style="font-size: 20px;" id="rpt-avg-daily">Rp 0</div>
+                <div class="summary-subtext" id="rpt-max-day">Tertinggi: -</div>
+              </div>
+              <div class="summary-icon-box amber">📈</div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-bottom: 24px;">
+            <!-- Category Donut Chart -->
+            <div class="card">
+              <div class="card-title" style="margin-bottom: 16px;">
+                <span>🍩</span> Proporsi Pengeluaran per Kategori
+              </div>
+              <div style="height: 280px; position: relative;">
+                <canvas id="chart-category-donut"></canvas>
+              </div>
+            </div>
+
+            <!-- Category Bar Chart -->
+            <div class="card">
+              <div class="card-title" style="margin-bottom: 16px;">
+                <span>📊</span> Nominal Pengeluaran Terbesar
+              </div>
+              <div style="height: 280px; position: relative;">
+                <canvas id="chart-category-bar"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Spending Trend Line Chart -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom: 16px;">
+              <span>📈</span> Tren Arus Kas Harian Sepanjang Bulan
+            </div>
+            <div style="height: 290px; position: relative;">
+              <canvas id="chart-daily-trend"></canvas>
+            </div>
+          </div>
+
+          <!-- Category Breakdown Table -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom: 16px;">
+              <span>📑</span> Rincian Detail per Kategori
+            </div>
+            <div class="table-responsive">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Kategori</th>
+                    <th>Porsi (%)</th>
+                    <th style="text-align: right;">Total Nominal (Rp)</th>
+                  </tr>
+                </thead>
+                <tbody id="rpt-category-table-body">
+                  <!-- Injected via reports.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: KELOLA KATEGORI                     -->
+        <!-- ========================================== -->
+        <section id="tab-categories" class="tab-pane">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🏷️ Kategori Transaksi</div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                  Gunakan kategori default atau buat kategori custom baru sesuai kebutuhan keluarga.
+                </p>
+              </div>
+              <button type="button" class="btn-primary" onclick="openAddCategoryModal()">
+                <span>➕</span> Tambah Kategori Custom
+              </button>
+            </div>
+
+            <div style="margin-bottom: 28px;">
+              <h3 style="font-size: 15px; color: var(--text-secondary); margin-bottom: 14px;">
+                💸 Kategori Pengeluaran
+              </h3>
+              <div id="cat-grid-pengeluaran" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+                <!-- Injected via categories.js -->
+              </div>
+            </div>
+
+            <div>
+              <h3 style="font-size: 15px; color: var(--text-secondary); margin-bottom: 14px;">
+                💰 Kategori Pemasukan
+              </h3>
+              <div id="cat-grid-pemasukan" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+                <!-- Injected via categories.js -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: ANGGOTA KELUARGA (ADMIN)            -->
+        <!-- ========================================== -->
+        <section id="tab-users" class="tab-pane">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">👥 Anggota Keluarga (Multi-User)</div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                  Setiap anggota keluarga dapat mencatat dari HP masing-masing dan data otomatis tersinkronisasi.
+                </p>
+              </div>
+              <button type="button" class="btn-primary" onclick="openAddUserModal()">
+                <span>➕</span> Daftarkan Anggota Baru
+              </button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Nama & Username</th>
+                    <th>Peran (Role)</th>
+                    <th>Email</th>
+                    <th>Telegram Chat ID</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <!-- Injected via users.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 6: PENGATURAN & CLOUD SYNC             -->
+        <!-- ========================================== -->
+        <section id="tab-settings" class="tab-pane">
+          <!-- Cloud Sync Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>☁️</span> Sinkronisasi Cloud (Google Drive) & Excel
+              </div>
+              <button type="button" id="btn-manual-sync" class="btn-primary" onclick="triggerManualSync()">
+                🔄 Sinkronkan Sekarang
+              </button>
+            </div>
+
+            <div style="background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                <div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Status Sinkronisasi:</div>
+                  <div id="setting-sync-status-badge" style="margin-top: 4px;">Memuat...</div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Terakhir Disinkronkan:</div>
+                  <strong id="setting-last-sync-time" style="font-size: 13px; color: var(--text-primary);">-</strong>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Lokasi Database Lokal:</div>
+                  <span id="setting-local-path" style="font-size: 12px; font-family: monospace; color: var(--text-secondary); word-break: break-all;">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button type="button" class="btn-secondary" onclick="downloadExcelFile()">
+                <span>📥</span> Download File Excel (.xlsx) Lengkap
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification Settings Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🔔</span> Notifikasi & Reminder Keuangan
+              </div>
+              <button type="button" id="btn-test-notif" class="btn-secondary" onclick="triggerTestNotification()">
+                🚀 Kirim Notifikasi Uji Coba
+              </button>
+            </div>
+
+            <form id="form-notification-settings" style="max-width: 600px;">
+              <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="setting-notif-daily-enabled" style="width: 18px; height: 18px;">
+                <label for="setting-notif-daily-enabled" style="font-weight: 600; cursor: pointer;">
+                  Aktifkan Reminder Harian Otomatis
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-notif-daily-time">Jam Pengiriman Reminder Harian (WIB)</label>
+                <input type="time" id="setting-notif-daily-time" class="form-input" style="max-width: 200px;" value="20:00">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-notif-channel">Saluran Notifikasi</label>
+                <select id="setting-notif-channel" class="form-select" style="max-width: 300px;">
+                  <option value="both">Keduanya (Email + Telegram Bot)</option>
+                  <option value="email">Email Saja (Gmail SMTP)</option>
+                  <option value="telegram">Telegram Bot Saja</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-telegram-token">Telegram Bot Token (Opsional)</label>
+                <input type="password" id="setting-telegram-token" class="form-input" placeholder="Masukkan token bot Telegram dari @BotFather">
+                <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                  Keluarga dapat menerima pengingat harian langsung ke aplikasi Telegram mereka.
+                </small>
+              </div>
+
+              <button type="submit" class="btn-primary">
+                Simpan Pengaturan Notifikasi
+              </button>
+            </form>
+
+            <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+              <h4 style="font-size: 14px; margin-bottom: 12px;">Riwayat Pengiriman Notifikasi Terbaru:</h4>
+              <div class="table-responsive">
+                <table class="modern-table">
+                  <thead>
+                    <tr>
+                      <th>Waktu</th>
+                      <th>Tipe</th>
+                      <th>Channel</th>
+                      <th>Penerima</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="setting-notif-logs-body">
+                    <!-- Injected via settings.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Mobile Floating Action Button (FAB) -->
+  <button type="button" class="mobile-fab" onclick="openTransactionModal()" title="Catat Transaksi">
+    ➕
+  </button>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="bottom-nav-bar">
+    <button type="button" class="bottom-nav-item active" data-tab="dashboard">
+      <span class="nav-icon">📊</span>
+      <span>Home</span>
+    </button>
+    <button type="button" class="bottom-nav-item" data-tab="transactions">
+      <span class="nav-icon">📝</span>
+      <span>Riwayat</span>
+    </button>
+    <button type="button" class="bottom-nav-item" data-tab="reports">
+      <span class="nav-icon">📈</span>
+      <span>Laporan</span>
+    </button>
+    <button type="button" class="bottom-nav-item" data-tab="categories">
+      <span class="nav-icon">🏷️</span>
+      <span>Kategori</span>
+    </button>
+    <button type="button" class="bottom-nav-item" data-tab="settings">
+      <span class="nav-icon">⚙️</span>
+      <span>Setting</span>
+    </button>
+  </nav>
+
+  <!-- ========================================== -->
+  <!-- MODALS CONTAINER                           -->
+  <!-- ========================================== -->
+
+  <!-- Modal: Tambah Transaksi -->
+  <div class="modal-backdrop" id="modal-add-transaction">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>➕ Catat Transaksi Baru</h3>
+        <button type="button" class="btn-close-modal">✕</button>
+      </div>
+      <form id="form-add-transaction">
+        <div class="modal-body">
+          <!-- Tipe Toggle -->
+          <div class="type-toggle-container">
+            <button type="button" id="btn-type-pengeluaran" class="type-toggle-btn active pengeluaran" onclick="setModalTxType('Pengeluaran')">
+              💸 Pengeluaran
+            </button>
+            <button type="button" id="btn-type-pemasukan" class="type-toggle-btn" onclick="setModalTxType('Pemasukan')">
+              💰 Pemasukan
+            </button>
+          </div>
+          <input type="hidden" id="modal-tx-tipe" value="Pengeluaran">
+
+          <!-- Jumlah Input -->
+          <div class="form-group">
+            <label class="form-label" for="modal-tx-jumlah">Jumlah Nominal (Rp) *</label>
+            <input type="number" id="modal-tx-jumlah" class="form-input" placeholder="0" required min="1" step="500" autofocus>
+            <div class="preset-amounts">
+              <span class="preset-chip" onclick="setPresetAmount(10000)">10 rb</span>
+              <span class="preset-chip" onclick="setPresetAmount(25000)">25 rb</span>
+              <span class="preset-chip" onclick="setPresetAmount(50000)">50 rb</span>
+              <span class="preset-chip" onclick="setPresetAmount(100000)">100 rb</span>
+              <span class="preset-chip" onclick="setPresetAmount(500000)">500 rb</span>
+              <span class="preset-chip" onclick="setPresetAmount(1000000)">1 jt</span>
+            </div>
+          </div>
+
+          <!-- Kategori Selector -->
+          <div class="form-group">
+            <label class="form-label" for="modal-tx-kategori">Kategori *</label>
+            <select id="modal-tx-kategori" class="form-select" required></select>
+          </div>
+
+          <!-- Tanggal Input -->
+          <div class="form-group">
+            <label class="form-label" for="modal-tx-tanggal">Tanggal Transaksi *</label>
+            <input type="date" id="modal-tx-tanggal" class="form-input" required>
+          </div>
+
+          <!-- Keterangan Input -->
+          <div class="form-group">
+            <label class="form-label" for="modal-tx-keterangan">Keterangan / Catatan (Opsional)</label>
+            <input type="text" id="modal-tx-keterangan" class="form-input" placeholder="Contoh: Belanja mingguan pasar, makan siang...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary btn-cancel-modal">Batal</button>
+          <button type="submit" class="btn-primary">Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Transaksi -->
+  <div class="modal-backdrop" id="modal-edit-transaction">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>✏️ Ubah Transaksi</h3>
+        <button type="button" class="btn-close-modal">✕</button>
+      </div>
+      <form id="form-edit-transaction">
+        <input type="hidden" id="edit-tx-id">
+        <input type="hidden" id="edit-tx-tipe">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="edit-tx-jumlah">Jumlah Nominal (Rp) *</label>
+            <input type="number" id="edit-tx-jumlah" class="form-input" required min="1">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-tx-kategori">Kategori *</label>
+            <select id="edit-tx-kategori" class="form-select" required></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-tx-tanggal">Tanggal Transaksi *</label>
+            <input type="date" id="edit-tx-tanggal" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-tx-keterangan">Keterangan</label>
+            <input type="text" id="edit-tx-keterangan" class="form-input">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary btn-cancel-modal">Batal</button>
+          <button type="submit" class="btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Kategori Custom -->
+  <div class="modal-backdrop" id="modal-add-category">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>🏷️ Tambah Kategori Custom</h3>
+        <button type="button" class="btn-close-modal">✕</button>
+      </div>
+      <form id="form-add-category">
+        <div class="modal-body">
+          <!-- Live Badge Preview -->
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Pratinjau Kategori:</div>
+            <div id="cat-preview-box"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-cat-nama">Nama Kategori *</label>
+            <input type="text" id="modal-cat-nama" class="form-input" placeholder="Contoh: Kopi & Cafe, Hobi, Skincare..." required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-cat-tipe">Tipe Transaksi *</label>
+            <select id="modal-cat-tipe" class="form-select">
+              <option value="Pengeluaran">Pengeluaran</option>
+              <option value="Pemasukan">Pemasukan</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pilih Ikon Emoji</label>
+            <div id="emoji-palette" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; padding: 4px;"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pilih Warna</label>
+            <div id="color-palette" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary btn-cancel-modal">Batal</button>
+          <button type="submit" class="btn-primary">Tambah Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Anggota User -->
+  <div class="modal-backdrop" id="modal-add-user">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>👥 Daftarkan Anggota Keluarga</h3>
+        <button type="button" class="btn-close-modal">✕</button>
+      </div>
+      <form id="form-add-user">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="modal-user-nama">Nama Lengkap *</label>
+            <input type="text" id="modal-user-nama" class="form-input" placeholder="Contoh: Rian Soediro (Anak Pertama)" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-user-username">Username *</label>
+            <input type="text" id="modal-user-username" class="form-input" placeholder="contoh: rian" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-user-password">Password Awal *</label>
+            <input type="password" id="modal-user-password" class="form-input" placeholder="Minimal 6 karakter" required minlength="6">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-user-role">Peran (Role) *</label>
+            <select id="modal-user-role" class="form-select">
+              <option value="anggota">Anggota Keluarga (Bisa input & lihat laporan)</option>
+              <option value="admin">Kepala Keluarga / Admin (Kelola user & pengaturan)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-user-email">Email (Untuk Reminder)</label>
+            <input type="email" id="modal-user-email" class="form-input" placeholder="email@keluarga.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modal-user-telegram">Telegram Chat ID (Opsional)</label>
+            <input type="text" id="modal-user-telegram" class="form-input" placeholder="123456789">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary btn-cancel-modal">Batal</button>
+          <button type="submit" class="btn-primary">Daftarkan Anggota</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Anggota User -->
+  <div class="modal-backdrop" id="modal-edit-user">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>✏️ Edit Data Anggota Keluarga</h3>
+        <button type="button" class="btn-close-modal">✕</button>
+      </div>
+      <form id="form-edit-user">
+        <input type="hidden" id="edit-user-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="edit-user-nama">Nama Lengkap *</label>
+            <input type="text" id="edit-user-nama" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-user-role">Peran (Role) *</label>
+            <select id="edit-user-role" class="form-select">
+              <option value="anggota">Anggota Keluarga</option>
+              <option value="admin">Kepala Keluarga (Admin)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-user-email">Email</label>
+            <input type="email" id="edit-user-email" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-user-telegram">Telegram Chat ID</label>
+            <input type="text" id="edit-user-telegram" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-user-password">Reset Password (Kosongkan jika tidak diubah)</label>
+            <input type="password" id="edit-user-password" class="form-input" placeholder="Password baru...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary btn-cancel-modal">Batal</button>
+          <button type="submit" class="btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Scripts -->
+  <script src="/js/components/toast.js"></script>
+  <script src="/js/components/modal.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/transactions.js"></script>
+  <script src="/js/reports.js"></script>
+  <script src="/js/categories.js"></script>
+  <script src="/js/users.js"></script>
+  <script src="/js/settings.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    function resetTransactionFilters() {
+      document.getElementById('filter-search').value = '';
+      document.getElementById('filter-tipe').value = 'Semua';
+      document.getElementById('filter-kategori').value = 'Semua';
+      document.getElementById('filter-user').value = 'Semua';
+      document.getElementById('filter-start-date').value = '';
+      document.getElementById('filter-end-date').value = '';
+      loadTransactionsTable(1);
+    }
+  </script>
+</body>
+</html>

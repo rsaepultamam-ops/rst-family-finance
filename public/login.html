@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk — RST Family Finance</title>
+  <meta name="description" content="Aplikasi Pencatatan Keuangan Keluarga Modern Berbasis Excel">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 10% 20%, #eff6ff 0%, #f8fafc 90%);
+      padding: 20px;
+    }
+    .login-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      width: 100%;
+      max-width: 440px;
+      padding: 36px 32px;
+    }
+    .login-brand {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .login-brand-icon {
+      width: 54px;
+      height: 54px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+      font-size: 26px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+    .login-brand h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .login-brand p {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .quick-account-box {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .quick-account-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+    .quick-btns {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-quick-login {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+    .btn-quick-login:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+    .btn-quick-login strong {
+      display: block;
+      color: #0f172a;
+      font-size: 12px;
+    }
+    .btn-quick-login span {
+      color: #64748b;
+      font-size: 11px;
+    }
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-brand-icon">💰</div>
+        <h2>RST Family Finance</h2>
+        <p>Masuk untuk mengelola keuangan keluarga bersama</p>
+      </div>
+
+      <div id="login-error-alert" class="alert-error"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-username">Username</label>
+          <input type="text" id="login-username" class="form-input" placeholder="Masukkan username" required autofocus autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-input" placeholder="Masukkan password" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" id="btn-submit-login" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 14px; margin-top: 8px;">
+          Masuk ke Aplikasi
+        </button>
+      </form>
+
+      <div class="quick-account-box">
+        <div class="quick-account-title">Akun Uji Coba Cepat (Klik untuk isi)</div>
+        <div class="quick-btns">
+          <button type="button" class="btn-quick-login" onclick="fillLogin('admin', 'admin123')">
+            <strong>👑 Admin</strong>
+            <span>Budi (Kepala Keluarga)</span>
+          </button>
+          <button type="button" class="btn-quick-login" onclick="fillLogin('siti', 'siti123')">
+            <strong>👤 Anggota</strong>
+            <span>Siti Rahayu (Ibu)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/components/toast.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    function fillLogin(u, p) {
+      document.getElementById('login-username').value = u;
+      document.getElementById('login-password').value = p;
+      showToast(`Form diisi dengan akun ${u}`, 'info');
+    }
+  </script>
+</body>
+</html>
