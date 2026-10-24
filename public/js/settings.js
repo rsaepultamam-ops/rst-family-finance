@@ -208,9 +208,9 @@ async function confirmClearAllTransactions() {
     const res = await API.delete('/api/transactions/clear-all');
     if (res.success) {
       showToast('🎉 Semua data transaksi berhasil dibersihkan! Saldo sekarang Rp 0.', 'success', 5000);
-      if (typeof loadTransactionsTable === 'function') loadTransactionsTable(1);
-      if (typeof loadDashboardData === 'function') loadDashboardData();
-      if (typeof loadReportsData === 'function') loadReportsData();
+      if (typeof loadTransactionsTable === 'function') await loadTransactionsTable(1);
+      if (typeof loadDashboard === 'function') await loadDashboard();
+      if (typeof loadMonthlyReport === 'function') await loadMonthlyReport();
     }
   } catch (err) {
     showToast('Gagal membersihkan transaksi: ' + (err.message || 'Terjadi kesalahan'), 'error');

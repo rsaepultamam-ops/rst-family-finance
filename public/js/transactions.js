@@ -23,7 +23,8 @@ async function loadTransactionsTable(page = 1) {
   try {
     const params = {
       page: currentTxPage,
-      limit: TX_PER_PAGE
+      limit: TX_PER_PAGE,
+      _t: Date.now()
     };
     if (search) params.search = search;
     if (tipe && tipe !== 'Semua') params.tipe = tipe;
@@ -128,20 +129,20 @@ function renderPagination(totalItems, totalPages) {
 
 // Prompt for delete
 async function deleteTransactionPrompt(id) {
-  if (!confirm('Apakah Anda yakin ingin menghapus transaksi ini dari file Excel?')) {
+  if (!confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
     return;
   }
 
   try {
     const res = await API.delete(`/api/transactions/${id}`);
     if (res.success) {
-      showToast('Transaksi berhasil dihapus dari Excel', 'success');
-      loadTransactionsTable(currentTxPage);
-      if (typeof loadDashboard === 'function') loadDashboard();
-      if (typeof loadMonthlyReport === 'function') loadMonthlyReport();
+      showToast('✅ Transaksi berhasil dihapus!', 'success');
+      await loadTransactionsTable(1);
+      if (typeof loadDashboard === 'function') await loadDashboard();
+      if (typeof loadMonthlyReport === 'function') await loadMonthlyReport();
     }
   } catch (err) {
-    showToast(err.message || 'Gagal menghapus transaksi', 'error');
+    showToast(err.message || 'Gagal menghapus transaksi', 'error', 6000);
   }
 }
 

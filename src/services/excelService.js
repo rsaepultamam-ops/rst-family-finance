@@ -402,7 +402,9 @@ async function deleteTransaction(id) {
     }
 
     const [deleted] = list.splice(index, 1);
-    const newWs = XLSX.utils.json_to_sheet(list);
+    const newWs = XLSX.utils.json_to_sheet(list, {
+      header: ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Jumlah', 'Keterangan', 'User', 'Dibuat', 'Diubah']
+    });
     wb.Sheets['Transaksi'] = newWs;
     await writeWorkbook(wb);
     return deleted;

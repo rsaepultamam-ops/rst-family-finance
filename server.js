@@ -25,6 +25,14 @@ app.use((req, res, next) => {
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Prevent HTTP caching on all API routes so data is always fresh
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // API Routes
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/users', require('./src/routes/users'));

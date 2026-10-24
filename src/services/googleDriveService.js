@@ -212,6 +212,7 @@ async function findFileInFolder(drive, folderId, fileName = 'keuangan_keluarga.x
     const res = await drive.files.list({
       q: query,
       fields: 'files(id, name, modifiedTime)',
+      orderBy: 'modifiedTime desc',
       spaces: 'drive'
     });
     const files = res.data.files;
