@@ -93,10 +93,12 @@ router.get('/oauth2callback', async (req, res) => {
     }
 
     const redirectUri = getDynamicRedirectUri(req);
-    await handleOAuth2Callback(code, redirectUri);
+    const tokens = await handleOAuth2Callback(code, redirectUri);
+    const refreshToken = (tokens && tokens.refresh_token) || process.env.GOOGLE_REFRESH_TOKEN || '';
+    const refreshTokenParam = refreshToken ? `&refreshToken=${encodeURIComponent(refreshToken)}` : '';
 
-    // Redirect to frontend with query flag
-    res.redirect('/?sync=success');
+    // Redirect to frontend with query flag and refresh token
+    res.redirect(`/?sync=success${refreshTokenParam}`);
   } catch (err) {
     console.error('OAuth callback error:', err);
     res.status(500).send(`

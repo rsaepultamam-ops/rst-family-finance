@@ -34,6 +34,12 @@ async function loadSettingsPage() {
       if (elLocalPath) {
         elLocalPath.textContent = s.localFilePath;
       }
+
+      const permBox = document.getElementById('setting-permanent-sync-box');
+      const refreshToken = s.refreshToken || API.getGoogleRefreshToken();
+      if (permBox) {
+        permBox.style.display = (s.isConfigured || refreshToken) ? 'block' : 'none';
+      }
     }
 
     // Notification Settings
@@ -216,8 +222,22 @@ async function confirmClearAllTransactions() {
   }
 }
 
+function copyGoogleRefreshToken() {
+  const token = API.getGoogleRefreshToken();
+  if (!token) {
+    showToast('Token belum tersedia di browser. Silakan klik "Hubungkan Akun Google Drive" terlebih dahulu.', 'warning');
+    return;
+  }
+  navigator.clipboard.writeText(token).then(() => {
+    showToast('📋 GOOGLE_REFRESH_TOKEN berhasil disalin ke clipboard!', 'success', 5000);
+  }).catch(() => {
+    prompt('Salin GOOGLE_REFRESH_TOKEN berikut:', token);
+  });
+}
+
 window.loadSettingsPage = loadSettingsPage;
 window.triggerManualSync = triggerManualSync;
 window.triggerTestNotification = triggerTestNotification;
 window.downloadExcelFile = downloadExcelFile;
 window.confirmClearAllTransactions = confirmClearAllTransactions;
+window.copyGoogleRefreshToken = copyGoogleRefreshToken;

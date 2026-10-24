@@ -134,10 +134,13 @@ function createDefaultWorkbookSync() {
 }
 
 /**
- * Initialize default Excel file if it does not exist
+ * Initialize default Excel file if it does not exist or sync from Google Drive
  */
 async function initExcel() {
-  if (fs.existsSync(EXCEL_PATH)) {
+  const { hasSyncedInInstance, downloadFromDrive } = require('./googleDriveService');
+
+  // If already synced from Drive in this instance and file exists, we're ready
+  if (hasSyncedInInstance() && fs.existsSync(EXCEL_PATH)) {
     return;
   }
 
@@ -147,22 +150,24 @@ async function initExcel() {
 
   initPromise = (async () => {
     try {
+      // Check if we can sync from Google Drive
+      if (!hasSyncedInInstance()) {
+        try {
+          const downloaded = await downloadFromDrive();
+          if (downloaded) {
+            return;
+          }
+        } catch (e) {
+          console.warn('[INIT] Tidak dapat mengunduh dari Drive saat ini:', e.message);
+        }
+      }
+
+      // If file already exists (from earlier or default), return
       if (fs.existsSync(EXCEL_PATH)) {
         return;
       }
 
-      // Cek apakah Google Drive terkonfigurasi dan unduh file terbaru jika tersedia
-      try {
-        const { downloadFromDrive } = require('./googleDriveService');
-        await downloadFromDrive();
-      } catch (e) {
-        // Abaikan jika belum dikonfigurasi atau offline
-      }
-
-      if (fs.existsSync(EXCEL_PATH)) {
-        return;
-      }
-
+      // Otherwise create initial default workbook
       createDefaultWorkbookSync();
     } finally {
       initPromise = null;

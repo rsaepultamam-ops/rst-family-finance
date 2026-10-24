@@ -37,6 +37,16 @@ function setSyncStatusDirectly(status, timestamp) {
 /**
  * Get OAuth2 Client instance
  */
+let hasSyncedFromDriveInInstance = false;
+
+function markSyncedInInstance(synced = true) {
+  hasSyncedFromDriveInInstance = synced;
+}
+
+function hasSyncedInInstance() {
+  return hasSyncedFromDriveInInstance;
+}
+
 function getOAuth2Client(customRedirectUri) {
   require('dotenv').config();
   let clientId = (process.env.GOOGLE_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
@@ -85,6 +95,7 @@ async function handleOAuth2Callback(code, customRedirectUri) {
   oauth2Client.setCredentials(tokens);
 
   if (tokens.refresh_token) {
+    process.env.GOOGLE_REFRESH_TOKEN = tokens.refresh_token;
     await updateSetting('google_refresh_token', tokens.refresh_token);
   }
   if (tokens.access_token) {
@@ -95,9 +106,18 @@ async function handleOAuth2Callback(code, customRedirectUri) {
   await updateSetting('sync_status', 'synced');
   await updateSetting('last_sync_timestamp', new Date().toISOString());
 
-  // Trigger initial upload / sync
+  // Check if file already exists in Google Drive
   try {
-    await uploadToDrive();
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const existing = await findFileInFolder(drive, folderId);
+    if (existing) {
+      console.log('[DRIVE] File sudah ada di Google Drive, mengunduh file terbaru...');
+      await downloadFromDrive();
+    } else {
+      console.log('[DRIVE] File belum ada di Google Drive, mengunggah file lokal...');
+      await uploadToDrive();
+    }
   } catch (err) {
     console.error('Initial sync error:', err.message);
   }
@@ -156,7 +176,8 @@ async function getDriveClient() {
 async function getSyncStatus() {
   const settings = await getSettings();
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || settings.google_drive_folder_id;
-  const hasOAuth = Boolean(settings.google_refresh_token && process.env.GOOGLE_CLIENT_ID);
+  const refreshToken = (process.env.GOOGLE_REFRESH_TOKEN || settings.google_refresh_token || '').trim();
+  const hasOAuth = Boolean(refreshToken && process.env.GOOGLE_CLIENT_ID);
   const hasServiceAccount = Boolean(
     (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) ||
     (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS))
@@ -164,7 +185,7 @@ async function getSyncStatus() {
 
   const isConfigured = Boolean((hasOAuth || hasServiceAccount));
   const lastSync = settings.last_sync_timestamp || null;
-  const status = isConfigured ? (settings.sync_status || 'synced') : 'local_active';
+  const status = isConfigured ? (settings.sync_status === 'error' ? 'error' : (settings.sync_status === 'syncing' ? 'syncing' : 'synced')) : 'local_active';
 
   return {
     isConfigured,
@@ -173,7 +194,8 @@ async function getSyncStatus() {
     lastSync,
     folderId: folderId || 'Root / Custom Folder',
     provider: 'Google Drive (.xlsx)',
-    localFilePath: getExcelFilePath()
+    localFilePath: getExcelFilePath(),
+    refreshToken: refreshToken || null
   };
 }
 
@@ -228,6 +250,7 @@ async function downloadFromDrive() {
       .pipe(dest)
       .on('finish', () => {
         console.log('[DRIVE] Unduhan file Excel dari Google Drive selesai.');
+        markSyncedInInstance(true);
         resolve(true);
       })
       .on('error', (err) => {
@@ -265,6 +288,7 @@ async function uploadToDrive() {
       fields: 'id, name, modifiedTime'
     });
     setSyncStatusDirectly('synced', now);
+    markSyncedInInstance(true);
     return res.data;
   } else {
     // Create new file in Google Drive
@@ -280,6 +304,7 @@ async function uploadToDrive() {
       fields: 'id, name, modifiedTime'
     });
     setSyncStatusDirectly('synced', now);
+    markSyncedInInstance(true);
     return res.data;
   }
 }
@@ -324,5 +349,7 @@ module.exports = {
   getSyncStatus,
   triggerSync,
   downloadFromDrive,
-  uploadToDrive
+  uploadToDrive,
+  markSyncedInInstance,
+  hasSyncedInInstance
 };

@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check if redirected from Google OAuth
   const urlParams = new URLSearchParams(window.location.search);
+  const refreshTokenFromUrl = urlParams.get('refreshToken');
+  if (refreshTokenFromUrl) {
+    API.setGoogleRefreshToken(refreshTokenFromUrl);
+  }
   if (urlParams.get('sync') === 'success') {
     showToast('🎉 Google Drive berhasil terhubung! Data keuangan keluarga otomatis tersinkronisasi.', 'success', 6000);
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -184,6 +188,9 @@ async function updateGlobalSyncIndicator() {
     const res = await API.get('/api/sync/status');
     if (res.success && res.data) {
       const s = res.data;
+      if (s.refreshToken) {
+        API.setGoogleRefreshToken(s.refreshToken);
+      }
       if (s.status === 'synced') {
         if (dot) dot.className = 'sync-dot';
         if (text) text.textContent = 'Drive Synced';

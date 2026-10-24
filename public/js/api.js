@@ -5,9 +5,24 @@
 const API = {
   TOKEN_KEY: 'rst_family_token',
   USER_KEY: 'rst_family_user',
+  REFRESH_TOKEN_KEY: 'rst_google_refresh_token',
 
   getToken() {
     return localStorage.getItem(this.TOKEN_KEY);
+  },
+
+  getGoogleRefreshToken() {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  },
+
+  setGoogleRefreshToken(token) {
+    if (token && typeof token === 'string' && token.trim()) {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, token.trim());
+    }
+  },
+
+  clearGoogleRefreshToken() {
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
   },
 
   setSession(token, user) {
@@ -31,6 +46,7 @@ const API = {
 
   async request(endpoint, options = {}) {
     const token = this.getToken();
+    const googleToken = this.getGoogleRefreshToken();
     const headers = {
       'Content-Type': 'application/json',
       ...(options.headers || {})
@@ -38,6 +54,10 @@ const API = {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (googleToken) {
+      headers['X-Google-Refresh-Token'] = googleToken;
     }
 
     try {
