@@ -151,18 +151,27 @@ function switchTab(tabId) {
     loadSettingsPage();
   }
 
+  // Automatically close mobile sidebar if open
+  closeMobileSidebar();
+
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function toggleMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
-  if (sidebar) sidebar.classList.toggle('mobile-open');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar) {
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    if (overlay) overlay.classList.toggle('active', isOpen);
+  }
 }
 
 function closeMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
   if (sidebar) sidebar.classList.remove('mobile-open');
+  if (overlay) overlay.classList.remove('active');
 }
 
 async function updateGlobalSyncIndicator() {

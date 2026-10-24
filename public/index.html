@@ -108,6 +108,9 @@
       </div>
     </aside>
 
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
     <!-- Main Wrapper -->
     <div class="main-wrapper">
       <!-- Top Sticky Header -->
@@ -128,8 +131,8 @@
           </div>
 
           <!-- Quick Add Button -->
-          <button type="button" class="btn-primary" onclick="openTransactionModal()">
-            <span>➕</span> <span>Catat Transaksi</span>
+          <button type="button" class="btn-primary btn-header-add" onclick="openTransactionModal()">
+            <span>➕</span> <span class="hide-mobile">Catat Transaksi</span>
           </button>
 
           <!-- User Quick Avatar -->
@@ -386,7 +389,7 @@
           </div>
 
           <!-- Charts Grid -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-bottom: 24px;">
+          <div class="charts-grid">
             <!-- Category Donut Chart -->
             <div class="card">
               <div class="card-title" style="margin-bottom: 16px;">
@@ -462,7 +465,7 @@
               <h3 style="font-size: 15px; color: var(--text-secondary); margin-bottom: 14px;">
                 💸 Kategori Pengeluaran
               </h3>
-              <div id="cat-grid-pengeluaran" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+              <div id="cat-grid-pengeluaran" class="category-grid">
                 <!-- Injected via categories.js -->
               </div>
             </div>
@@ -471,7 +474,7 @@
               <h3 style="font-size: 15px; color: var(--text-secondary); margin-bottom: 14px;">
                 💰 Kategori Pemasukan
               </h3>
-              <div id="cat-grid-pemasukan" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+              <div id="cat-grid-pemasukan" class="category-grid">
                 <!-- Injected via categories.js -->
               </div>
             </div>

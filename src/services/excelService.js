@@ -185,23 +185,18 @@ function readWorkbook() {
 let isSyncingToDrive = false;
 
 /**
- * Write workbook to disk safely and auto sync to Google Drive
+ * Write workbook to disk safely and auto sync to Google Drive (Awaited for serverless compatibility)
  */
-function writeWorkbook(wb, syncToDrive = true) {
+async function writeWorkbook(wb, syncToDrive = true) {
   XLSX.writeFile(wb, EXCEL_PATH);
 
-  // Auto upload to Google Drive if credentials exist and not currently syncing
-  if (syncToDrive && !isSyncingToDrive) {
+  // Auto upload to Google Drive if credentials exist
+  if (syncToDrive) {
     try {
       const { uploadToDrive } = require('./googleDriveService');
-      isSyncingToDrive = true;
-      uploadToDrive()
-        .catch(err => console.error('[DRIVE AUTO-SYNC ERROR]', err.message))
-        .finally(() => {
-          isSyncingToDrive = false;
-        });
+      await uploadToDrive();
     } catch (err) {
-      isSyncingToDrive = false;
+      console.error('[DRIVE AUTO-SYNC ERROR]', err.message);
     }
   }
 }
@@ -291,7 +286,7 @@ async function addTransaction(data) {
     list.push(newTrx);
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Transaksi'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return newTrx;
   });
 }
@@ -320,7 +315,7 @@ async function updateTransaction(id, updateData) {
 
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Transaksi'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return list[index];
   });
 }
@@ -340,7 +335,7 @@ async function deleteTransaction(id) {
     const [deleted] = list.splice(index, 1);
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Transaksi'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return deleted;
   });
 }
@@ -356,7 +351,7 @@ async function clearAllTransactions() {
     wb.Sheets['Transaksi'] = XLSX.utils.json_to_sheet(emptyTransactions, {
       header: ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Jumlah', 'Keterangan', 'User', 'Dibuat', 'Diubah']
     });
-    writeWorkbook(wb, true);
+    await writeWorkbook(wb, true);
     return { success: true };
   });
 }
@@ -413,7 +408,7 @@ async function addCategory(data) {
     list.push(newCategory);
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Kategori'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return newCategory;
   });
 }
@@ -440,7 +435,7 @@ async function updateCategory(id, data) {
 
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Kategori'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return list[index];
   });
 }
@@ -467,7 +462,7 @@ async function deleteCategory(id) {
 
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Kategori'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return list[index];
   });
 }
@@ -529,7 +524,7 @@ async function addUser(data) {
     list.push(newUser);
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Users'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
 
     const { Password, ...safeUser } = newUser;
     return safeUser;
@@ -559,7 +554,7 @@ async function updateUser(id, updateData) {
 
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Users'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
 
     const { Password, ...safeUser } = list[index];
     return safeUser;
@@ -583,7 +578,7 @@ async function deleteUser(id) {
 
     const newWs = XLSX.utils.json_to_sheet(list);
     wb.Sheets['Users'] = newWs;
-    writeWorkbook(wb);
+    await writeWorkbook(wb);
     return { success: true, message: 'User berhasil dinonaktifkan' };
   });
 }
@@ -637,7 +632,7 @@ async function updateSetting(key, value) {
     }
 
     wb.Sheets['Settings'] = XLSX.utils.json_to_sheet(list);
-    writeWorkbook(wb, false);
+    await writeWorkbook(wb, false);
     return { [key]: value };
   });
 }
@@ -669,7 +664,7 @@ async function addNotificationLog(logData) {
 
     list.push(newLog);
     wb.Sheets['Notifikasi_Log'] = XLSX.utils.json_to_sheet(list);
-    writeWorkbook(wb, false);
+    await writeWorkbook(wb, false);
     return newLog;
   });
 }

@@ -1,11 +1,38 @@
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
+const XLSX = require('xlsx');
 const { getSettings, updateSetting, getExcelFilePath } = require('./excelService');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file'
 ];
+
+/**
+ * Update sync status directly in Excel file without deadlocking withWriteLock
+ */
+function setSyncStatusDirectly(status, timestamp) {
+  try {
+    const localPath = getExcelFilePath();
+    if (!fs.existsSync(localPath)) return;
+    const wb = XLSX.readFile(localPath);
+    const ws = wb.Sheets['Settings'];
+    if (!ws) return;
+    let list = XLSX.utils.sheet_to_json(ws) || [];
+    const updateKey = (k, v) => {
+      const idx = list.findIndex(r => r.Key === k);
+      const iso = new Date().toISOString();
+      if (idx >= 0) { list[idx].Value = String(v); list[idx].Diubah = iso; }
+      else { list.push({ Key: k, Value: String(v), Diubah: iso }); }
+    };
+    if (status) updateKey('sync_status', status);
+    if (timestamp) updateKey('last_sync_timestamp', timestamp);
+    wb.Sheets['Settings'] = XLSX.utils.json_to_sheet(list);
+    XLSX.writeFile(wb, localPath);
+  } catch (err) {
+    // Non-blocking
+  }
+}
 
 /**
  * Get OAuth2 Client instance
@@ -237,8 +264,7 @@ async function uploadToDrive() {
       media: media,
       fields: 'id, name, modifiedTime'
     });
-    await updateSetting('last_sync_timestamp', now);
-    await updateSetting('sync_status', 'synced');
+    setSyncStatusDirectly('synced', now);
     return res.data;
   } else {
     // Create new file in Google Drive
@@ -253,8 +279,7 @@ async function uploadToDrive() {
       media,
       fields: 'id, name, modifiedTime'
     });
-    await updateSetting('last_sync_timestamp', now);
-    await updateSetting('sync_status', 'synced');
+    setSyncStatusDirectly('synced', now);
     return res.data;
   }
 }
@@ -267,8 +292,7 @@ async function triggerSync() {
   const now = new Date().toISOString();
 
   if (!drive) {
-    await updateSetting('last_sync_timestamp', now);
-    await updateSetting('sync_status', 'local_active');
+    setSyncStatusDirectly('local_active', now);
     return {
       success: true,
       mode: 'local',
@@ -278,7 +302,7 @@ async function triggerSync() {
   }
 
   try {
-    await updateSetting('sync_status', 'syncing');
+    setSyncStatusDirectly('syncing', null);
     const result = await uploadToDrive();
     return {
       success: true,
@@ -288,7 +312,7 @@ async function triggerSync() {
       syncedAt: now
     };
   } catch (err) {
-    await updateSetting('sync_status', 'error');
+    setSyncStatusDirectly('error', null);
     throw new Error('Gagal sinkronisasi Google Drive: ' + err.message);
   }
 }
