@@ -176,6 +176,17 @@ function setPresetAmount(val) {
 
 // Save transaction handler
 document.addEventListener('DOMContentLoaded', () => {
+  // Ensure amount inputs allow any round integer or currency value
+  const fixStep = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.setAttribute('step', 'any');
+      el.setAttribute('min', '0');
+    }
+  };
+  fixStep('modal-tx-jumlah');
+  fixStep('edit-tx-jumlah');
+
   const form = document.getElementById('form-add-transaction');
   if (form) {
     form.addEventListener('submit', async (e) => {
