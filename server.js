@@ -48,7 +48,9 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     app: 'RST Family Finance',
-    version: '1.0.0',
+    version: '1.0.2',
+    commit: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
+    build: '2026-10-24T15:08:00Z',
     timestamp: new Date().toISOString()
   });
 });

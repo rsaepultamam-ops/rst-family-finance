@@ -90,7 +90,10 @@ function renderTransactionItem(t) {
   const color = cat.Warna || (isExpense ? '#ef4444' : '#10b981');
 
   const currentUser = API.getCurrentUser() || {};
-  const canEdit = currentUser.Role === 'admin' || currentUser.Username === t.User;
+  const uRole = String(currentUser.Role || currentUser.role || '').toLowerCase();
+  const uName = String(currentUser.Username || currentUser.username || '').toLowerCase();
+  const tUser = String(t.User || '').toLowerCase();
+  const canEdit = uRole === 'admin' || uName === 'admin' || uName === 'risman' || uName === tUser || (uName === 'sitijulaeha' && tUser === 'siti') || (uName === 'risman' && (tUser === 'admin' || tUser.includes('budi')));
 
   return `
     <div class="transaction-item" id="tx-item-${t.ID}">

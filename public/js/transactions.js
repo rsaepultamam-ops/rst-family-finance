@@ -61,8 +61,10 @@ async function loadTransactionsTable(page = 1) {
       tbody.innerHTML = txs.map(t => {
         const isExp = t.Tipe === 'Pengeluaran';
         const colorClass = isExp ? 'text-danger' : 'text-success';
-        const prefix = isExp ? '- ' : '+ ';
-        const canManage = currentUser.Role === 'admin' || currentUser.Username === t.User;
+        const uRole = String(currentUser.Role || currentUser.role || '').toLowerCase();
+        const uName = String(currentUser.Username || currentUser.username || '').toLowerCase();
+        const tUser = String(t.User || '').toLowerCase();
+        const canManage = uRole === 'admin' || uName === 'admin' || uName === 'risman' || uName === tUser || (uName === 'sitijulaeha' && tUser === 'siti') || (uName === 'risman' && (tUser === 'admin' || tUser.includes('budi')));
 
         return `
           <tr>

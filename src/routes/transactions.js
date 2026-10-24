@@ -10,6 +10,32 @@ const {
   clearAllTransactions
 } = require('../services/excelService');
 
+/**
+ * Helper to determine if a user has permission to edit or delete a transaction
+ */
+function canUserManageTransaction(user, txUser) {
+  if (!user) return false;
+  const role = String(user.Role || user.role || '').toLowerCase();
+  const username = String(user.Username || user.username || '').toLowerCase();
+  const creator = String(txUser || '').toLowerCase();
+
+  // Admin / Kepala Keluarga can manage everything
+  if (role === 'admin' || username === 'admin' || username === 'risman') {
+    return true;
+  }
+
+  // Author can manage their own
+  if (creator && creator === username) return true;
+  if (username === 'risman' && (creator === 'admin' || creator.includes('risman') || creator.includes('budi'))) return true;
+  if (username === 'sitijulaeha' && (creator === 'siti' || creator.includes('julaeha') || creator.includes('rahayu'))) return true;
+  if (username === 'siti' && (creator === 'sitijulaeha' || creator.includes('julaeha') || creator.includes('rahayu'))) return true;
+
+  // Fallback: if creator is missing, allow
+  if (!creator) return true;
+
+  return false;
+}
+
 router.use(authMiddleware);
 
 /**
@@ -121,27 +147,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-/**
- * Helper to determine if a user has permission to edit or delete a transaction
- */
-function canUserManageTransaction(user, txUser) {
-  const role = String(user.Role || user.role || '').toLowerCase();
-  const username = String(user.Username || user.username || '').toLowerCase();
-  const creator = String(txUser || '').toLowerCase();
-
-  // Admin / Kepala Keluarga can manage everything
-  if (role === 'admin' || username === 'admin' || username === 'risman') {
-    return true;
-  }
-
-  // Author can manage their own
-  if (creator === username) return true;
-  if (username === 'risman' && (creator === 'admin' || creator.includes('risman') || creator.includes('budi'))) return true;
-  if (username === 'sitijulaeha' && (creator === 'siti' || creator.includes('julaeha') || creator.includes('rahayu'))) return true;
-  if (username === 'siti' && (creator === 'sitijulaeha' || creator.includes('julaeha') || creator.includes('rahayu'))) return true;
-
-  return false;
-}
 
 /**
  * PUT /api/transactions/:id
