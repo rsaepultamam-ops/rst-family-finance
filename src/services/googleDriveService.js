@@ -10,11 +10,21 @@ const SCOPES = [
 /**
  * Get OAuth2 Client instance
  */
-function getOAuth2Client() {
+function getOAuth2Client(customRedirectUri) {
   require('dotenv').config();
   let clientId = (process.env.GOOGLE_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
   let clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim().replace(/^["']|["']$/g, '');
-  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/sync/oauth2callback').trim();
+  
+  let redirectUri = (customRedirectUri || process.env.GOOGLE_REDIRECT_URI || '').trim();
+  if (!redirectUri) {
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      redirectUri = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/api/sync/oauth2callback`;
+    } else if (process.env.VERCEL_URL) {
+      redirectUri = `https://${process.env.VERCEL_URL}/api/sync/oauth2callback`;
+    } else {
+      redirectUri = 'http://localhost:3000/api/sync/oauth2callback';
+    }
+  }
 
   if (!clientId || !clientSecret) return null;
 
@@ -24,10 +34,10 @@ function getOAuth2Client() {
 /**
  * Generate Google OAuth 2.0 Consent URL
  */
-function generateAuthUrl() {
-  const oauth2Client = getOAuth2Client();
+function generateAuthUrl(customRedirectUri) {
+  const oauth2Client = getOAuth2Client(customRedirectUri);
   if (!oauth2Client) {
-    throw new Error('GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET belum diisi di file .env');
+    throw new Error('GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET belum diisi di Vercel Environment Variables atau .env');
   }
 
   return oauth2Client.generateAuthUrl({
@@ -40,8 +50,8 @@ function generateAuthUrl() {
 /**
  * Exchange auth code for tokens and save refresh_token to settings
  */
-async function handleOAuth2Callback(code) {
-  const oauth2Client = getOAuth2Client();
+async function handleOAuth2Callback(code, customRedirectUri) {
+  const oauth2Client = getOAuth2Client(customRedirectUri);
   if (!oauth2Client) throw new Error('OAuth2 Client belum siap.');
 
   const { tokens } = await oauth2Client.getToken(code);
