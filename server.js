@@ -80,8 +80,8 @@ async function startServer() {
         console.log(`🚀 RST Family Finance Server berjalan!`);
         console.log(`🌐 Akses Aplikasi: http://localhost:${PORT}`);
         console.log(`📊 Basis Data: data/keuangan_keluarga.xlsx`);
-        console.log(`👤 Akun Default Admin: admin / admin123`);
-        console.log(`👤 Akun Default Anggota: siti / siti123`);
+        console.log(`👤 Akun Default Admin: risman / admin123 (atau admin)`);
+        console.log(`👤 Akun Default Anggota: sitijulaeha / siti123 (atau siti)`);
         console.log(`==================================================\n`);
       });
     }

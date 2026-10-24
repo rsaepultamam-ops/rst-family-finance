@@ -85,8 +85,8 @@ Saat pertama kali dijalankan, sistem otomatis membuat file Excel dengan 2 akun b
 
 | Peran | Nama | Username | Password |
 |---|---|---|---|
-| **Kepala Keluarga (Admin)** | Budi Soediro | `admin` | `admin123` |
-| **Anggota Keluarga** | Siti Rahayu | `siti` | `siti123` |
+| **Kepala Keluarga (Admin)** | Risman (Kepala Keluarga) | `risman` (atau `admin`) | `admin123` / `risman123` |
+| **Anggota Keluarga** | Siti Julaeha (Anggota Keluarga) | `sitijulaeha` (atau `siti`) | `siti123` |
 
 *Di halaman login tersedia tombol cepat untuk mengisi akun otomatis.*
 

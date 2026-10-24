@@ -65,19 +65,19 @@ function createDefaultWorkbookSync() {
   const defaultUsers = [
     {
       ID: 'USR-001',
-      Nama: 'Budi Soediro (Kepala Keluarga)',
-      Username: 'admin',
+      Nama: 'Risman (Kepala Keluarga)',
+      Username: 'risman',
       Password: adminPasswordHash,
       Role: 'admin',
-      Email: 'admin@keluarga.rst',
+      Email: 'risman@keluarga.rst',
       'Telegram Chat ID': '',
       Aktif: true,
       Dibuat: new Date().toISOString()
     },
     {
       ID: 'USR-002',
-      Nama: 'Siti Rahayu (Ibu)',
-      Username: 'siti',
+      Nama: 'Siti Julaeha (Anggota Keluarga)',
+      Username: 'sitijulaeha',
       Password: sitiPasswordHash,
       Role: 'anggota',
       Email: 'siti@keluarga.rst',
@@ -133,6 +133,57 @@ function createDefaultWorkbookSync() {
   XLSX.writeFile(wb, EXCEL_PATH);
 }
 
+function migrateDefaultUsers(wb) {
+  let changed = false;
+
+  const wsUsers = wb.Sheets['Users'];
+  if (wsUsers) {
+    let users = XLSX.utils.sheet_to_json(wsUsers) || [];
+    users = users.map(u => {
+      if (u.ID === 'USR-001' && (String(u.Nama).includes('Budi') || String(u.Username).toLowerCase() === 'admin')) {
+        u.Nama = 'Risman (Kepala Keluarga)';
+        u.Username = 'risman';
+        u.Email = 'risman@keluarga.rst';
+        changed = true;
+      }
+      if (u.ID === 'USR-002' && (String(u.Nama).includes('Rahayu') || String(u.Username).toLowerCase() === 'siti')) {
+        u.Nama = 'Siti Julaeha (Anggota Keluarga)';
+        u.Username = 'sitijulaeha';
+        u.Email = 'siti@keluarga.rst';
+        changed = true;
+      }
+      return u;
+    });
+
+    if (changed) {
+      wb.Sheets['Users'] = XLSX.utils.json_to_sheet(users);
+    }
+  }
+
+  const wsTrx = wb.Sheets['Transaksi'];
+  if (wsTrx) {
+    let trxList = XLSX.utils.sheet_to_json(wsTrx) || [];
+    let trxChanged = false;
+    trxList = trxList.map(t => {
+      if (t.User && String(t.User).includes('Budi')) {
+        t.User = 'Risman (Kepala Keluarga)';
+        trxChanged = true;
+      }
+      if (t.User && String(t.User).includes('Rahayu')) {
+        t.User = 'Siti Julaeha (Anggota Keluarga)';
+        trxChanged = true;
+      }
+      return t;
+    });
+    if (trxChanged) {
+      wb.Sheets['Transaksi'] = XLSX.utils.json_to_sheet(trxList);
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 /**
  * Initialize default Excel file if it does not exist or sync from Google Drive
  */
@@ -155,6 +206,13 @@ async function initExcel() {
         try {
           const downloaded = await downloadFromDrive();
           if (downloaded) {
+            // Check migration on downloaded file
+            try {
+              const wb = XLSX.readFile(EXCEL_PATH, { cellDates: false });
+              if (migrateDefaultUsers(wb)) {
+                await writeWorkbook(wb, true);
+              }
+            } catch (err) {}
             return;
           }
         } catch (e) {
@@ -162,8 +220,14 @@ async function initExcel() {
         }
       }
 
-      // If file already exists (from earlier or default), return
+      // If file already exists (from earlier or default), check migration and return
       if (fs.existsSync(EXCEL_PATH)) {
+        try {
+          const wb = XLSX.readFile(EXCEL_PATH, { cellDates: false });
+          if (migrateDefaultUsers(wb)) {
+            await writeWorkbook(wb, true);
+          }
+        } catch (err) {}
         return;
       }
 
@@ -491,7 +555,16 @@ async function getUsers() {
 
 async function getUserByUsername(username) {
   const users = await getUsers();
-  return users.find(u => u.Username.toLowerCase() === (username || '').toLowerCase()) || null;
+  const q = (username || '').toLowerCase().trim();
+  return users.find(u => {
+    const uName = (u.Username || '').toLowerCase().trim();
+    if (uName === q) return true;
+    if (q === 'admin' && uName === 'risman') return true;
+    if (q === 'risman' && uName === 'admin') return true;
+    if (q === 'siti' && (uName === 'sitijulaeha' || uName === 'siti')) return true;
+    if (q === 'sitijulaeha' && (uName === 'siti' || uName === 'sitijulaeha')) return true;
+    return false;
+  }) || null;
 }
 
 async function getUserById(id) {
