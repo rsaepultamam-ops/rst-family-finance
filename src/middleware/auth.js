@@ -33,6 +33,15 @@ async function authMiddleware(req, res, next) {
       Aktif: true
     };
 
+    // Auto-migrate legacy names if token was issued prior to renaming
+    if (safeUser.Nama && safeUser.Nama.includes('Budi')) {
+      safeUser.Nama = 'Risman (Kepala Keluarga)';
+      safeUser.Username = 'risman';
+    } else if (safeUser.Nama && safeUser.Nama.includes('Rahayu')) {
+      safeUser.Nama = 'Siti Julaeha (Anggota Keluarga)';
+      safeUser.Username = 'sitijulaeha';
+    }
+
     // If database is initialized and accessible, verify that user is not disabled
     try {
       const user = await getUserById(decoded.id);

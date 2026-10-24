@@ -14,7 +14,7 @@ async function loadUsersPage() {
 
     container.innerHTML = users.map(u => {
       const isAdmin = u.Role === 'admin';
-      const isSelf = currentUser.ID === u.ID;
+      const isSelf = (currentUser.ID && currentUser.ID === u.ID) || (currentUser.Username && currentUser.Username.toLowerCase() === (u.Username || '').toLowerCase());
 
       return `
         <tr>

@@ -14,8 +14,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Clean stale names from local storage if present
+  if (user.Nama && user.Nama.includes('Budi')) {
+    user.Nama = 'Risman (Kepala Keluarga)';
+    user.Username = 'risman';
+    API.setSession(token, user);
+  } else if (user.Nama && user.Nama.includes('Rahayu')) {
+    user.Nama = 'Siti Julaeha (Anggota Keluarga)';
+    user.Username = 'sitijulaeha';
+    API.setSession(token, user);
+  }
+
   // Populate User Information in Header & Sidebar
   populateUserInfo(user);
+
+  // Synchronize latest user profile from server dynamically
+  refreshCurrentUserProfile();
 
   // Initialize Navigation Click Handlers
   initNavigation();
@@ -53,8 +67,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function populateUserInfo(user) {
   const u = user || {};
-  const nama = u.Nama || u.nama || 'Pengguna';
-  const role = u.Role || u.role || 'anggota';
+  let nama = u.Nama || u.nama || 'Pengguna';
+  let role = String(u.Role || u.role || 'anggota').toLowerCase();
+
+  // Instant client migration if localStorage still holds stale name
+  if (nama.includes('Budi') || u.Username === 'admin' || u.username === 'admin') {
+    nama = 'Risman (Kepala Keluarga)';
+    u.Nama = nama;
+  } else if (nama.includes('Rahayu') || u.Username === 'siti' || u.username === 'siti') {
+    nama = 'Siti Julaeha (Anggota Keluarga)';
+    u.Nama = nama;
+  }
 
   // Sidebar user card
   const elAvatar = document.getElementById('user-sidebar-avatar');
@@ -62,10 +85,18 @@ function populateUserInfo(user) {
   const elRole = document.getElementById('user-sidebar-role');
 
   if (elAvatar) elAvatar.textContent = nama.charAt(0).toUpperCase();
-  if (elName) elName.textContent = nama;
+  if (elName) {
+    elName.textContent = nama;
+    elName.title = nama;
+  }
   if (elRole) {
-    elRole.textContent = role === 'admin' ? 'Kepala Keluarga (Admin)' : 'Anggota';
-    if (role === 'admin') elRole.classList.add('admin');
+    if (role === 'admin') {
+      elRole.textContent = 'Kepala Keluarga (Admin)';
+      elRole.className = 'user-role-badge admin';
+    } else {
+      elRole.textContent = 'Anggota Keluarga';
+      elRole.className = 'user-role-badge';
+    }
   }
 
   // Header user pill
@@ -79,6 +110,19 @@ function populateUserInfo(user) {
   adminOnlyNav.forEach(el => {
     el.style.display = role === 'admin' ? '' : 'none';
   });
+}
+
+async function refreshCurrentUserProfile() {
+  try {
+    const res = await API.get('/api/auth/me');
+    if (res && res.success && res.user) {
+      const token = API.getToken();
+      API.setSession(token, res.user);
+      populateUserInfo(res.user);
+    }
+  } catch (err) {
+    console.warn('Gagal memuat profil user terbaru:', err.message);
+  }
 }
 
 function initNavigation() {
