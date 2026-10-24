@@ -122,6 +122,8 @@ router.post('/', async (req, res) => {
 });
 
 /**
+ * Helper to determine if a user has permission to edit or delete a transaction
+ */
 function canUserManageTransaction(user, txUser) {
   const role = String(user.Role || user.role || '').toLowerCase();
   const username = String(user.Username || user.username || '').toLowerCase();
