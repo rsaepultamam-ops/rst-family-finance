@@ -188,7 +188,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+async function confirmClearAllTransactions() {
+  const confirmed = confirm('PERHATIAN: Apakah Anda yakin ingin mengosongkan SEMUA data transaksi?\n\nSemua riwayat transaksi akan dihapus dan saldo akan di-reset ke Rp 0. Tindakan ini tidak dapat dibatalkan.');
+  if (!confirmed) return;
+
+  const btn = document.getElementById('btn-clear-all-tx');
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Membersihkan transaksi...';
+    }
+
+    const res = await API.delete('/api/transactions/clear-all');
+    if (res.success) {
+      showToast('🎉 Semua data transaksi berhasil dibersihkan! Saldo sekarang Rp 0.', 'success', 5000);
+      if (typeof loadTransactionsTable === 'function') loadTransactionsTable(1);
+      if (typeof loadDashboardData === 'function') loadDashboardData();
+      if (typeof loadReportsData === 'function') loadReportsData();
+    }
+  } catch (err) {
+    showToast('Gagal membersihkan transaksi: ' + (err.message || 'Terjadi kesalahan'), 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🗑️ Bersihkan & Kosongkan Semua Transaksi';
+    }
+  }
+}
+
 window.loadSettingsPage = loadSettingsPage;
 window.triggerManualSync = triggerManualSync;
 window.triggerTestNotification = triggerTestNotification;
 window.downloadExcelFile = downloadExcelFile;
+window.confirmClearAllTransactions = confirmClearAllTransactions;

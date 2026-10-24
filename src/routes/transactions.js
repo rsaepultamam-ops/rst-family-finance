@@ -6,7 +6,8 @@ const {
   getTransactionById,
   addTransaction,
   updateTransaction,
-  deleteTransaction
+  deleteTransaction,
+  clearAllTransactions
 } = require('../services/excelService');
 
 router.use(authMiddleware);
@@ -146,6 +147,29 @@ router.put('/:id', async (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * DELETE /api/transactions/clear-all
+ * Clear all transaction records (Admin only)
+ */
+router.delete('/clear-all', async (req, res) => {
+  try {
+    if (req.user.Role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Hanya admin yang dapat mengosongkan semua transaksi.'
+      });
+    }
+
+    await clearAllTransactions();
+    res.json({
+      success: true,
+      message: 'Semua data transaksi berhasil dibersihkan dan dikosongkan.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

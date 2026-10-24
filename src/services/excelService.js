@@ -98,103 +98,7 @@ function createDefaultWorkbookSync() {
     'Dibuat Oleh': c.dibuatOleh
   }));
 
-  // Generate realistic initial transactions for the current month
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dToday = String(today.getDate()).padStart(2, '0');
-  const curDateStr = `${yyyy}-${mm}-${dToday}`;
-
-  const sampleTransactions = [
-    {
-      ID: 'TRX-' + yyyy + mm + '01-001',
-      Tanggal: `${yyyy}-${mm}-01`,
-      Tipe: 'Pemasukan',
-      Kategori: 'Gaji',
-      Jumlah: 8500000,
-      Keterangan: 'Gaji Bulanan Ayah',
-      User: 'admin',
-      Dibuat: `${yyyy}-${mm}-01T08:00:00.000Z`,
-      Diubah: `${yyyy}-${mm}-01T08:00:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + '02-002',
-      Tanggal: `${yyyy}-${mm}-02`,
-      Tipe: 'Pengeluaran',
-      Kategori: 'Listrik & Air',
-      Jumlah: 450000,
-      Keterangan: 'Token listrik PLN & PAM',
-      User: 'admin',
-      Dibuat: `${yyyy}-${mm}-02T09:30:00.000Z`,
-      Diubah: `${yyyy}-${mm}-02T09:30:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + '05-003',
-      Tanggal: `${yyyy}-${mm}-05`,
-      Tipe: 'Pengeluaran',
-      Kategori: 'Rumah Tangga',
-      Jumlah: 650000,
-      Keterangan: 'Belanja bulanan sembako & sabun',
-      User: 'siti',
-      Dibuat: `${yyyy}-${mm}-05T10:15:00.000Z`,
-      Diubah: `${yyyy}-${mm}-05T10:15:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + '10-004',
-      Tanggal: `${yyyy}-${mm}-10`,
-      Tipe: 'Pemasukan',
-      Kategori: 'Usaha',
-      Jumlah: 1200000,
-      Keterangan: 'Penjualan kue online Ibu',
-      User: 'siti',
-      Dibuat: `${yyyy}-${mm}-10T14:00:00.000Z`,
-      Diubah: `${yyyy}-${mm}-10T14:00:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + '12-005',
-      Tanggal: `${yyyy}-${mm}-12`,
-      Tipe: 'Pengeluaran',
-      Kategori: 'Transportasi',
-      Jumlah: 200000,
-      Keterangan: 'Isi bensin mobil keluarga',
-      User: 'admin',
-      Dibuat: `${yyyy}-${mm}-12T16:20:00.000Z`,
-      Diubah: `${yyyy}-${mm}-12T16:20:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + '15-006',
-      Tanggal: `${yyyy}-${mm}-15`,
-      Tipe: 'Pengeluaran',
-      Kategori: 'Pulsa & Internet',
-      Jumlah: 350000,
-      Keterangan: 'Langganan WiFi Indihome rumah',
-      User: 'admin',
-      Dibuat: `${yyyy}-${mm}-15T11:00:00.000Z`,
-      Diubah: `${yyyy}-${mm}-15T11:00:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + '18-007',
-      Tanggal: `${yyyy}-${mm}-18`,
-      Tipe: 'Pengeluaran',
-      Kategori: 'Makanan & Minuman',
-      Jumlah: 175000,
-      Keterangan: 'Makan malam keluarga di restoran',
-      User: 'siti',
-      Dibuat: `${yyyy}-${mm}-18T19:30:00.000Z`,
-      Diubah: `${yyyy}-${mm}-18T19:30:00.000Z`
-    },
-    {
-      ID: 'TRX-' + yyyy + mm + dToday + '-008',
-      Tanggal: curDateStr,
-      Tipe: 'Pengeluaran',
-      Kategori: 'Makanan & Minuman',
-      Jumlah: 65000,
-      Keterangan: 'Belanja sayur & buah pasar pagi',
-      User: 'siti',
-      Dibuat: new Date().toISOString(),
-      Diubah: new Date().toISOString()
-    }
-  ];
+  const emptyTransactions = [];
 
   const defaultSettings = [
     { Key: 'cloud_sync_enabled', Value: 'false', Diubah: new Date().toISOString() },
@@ -210,7 +114,9 @@ function createDefaultWorkbookSync() {
 
   const wb = XLSX.utils.book_new();
 
-  const wsTransaksi = XLSX.utils.json_to_sheet(sampleTransactions);
+  const wsTransaksi = XLSX.utils.json_to_sheet(emptyTransactions, {
+    header: ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Jumlah', 'Keterangan', 'User', 'Dibuat', 'Diubah']
+  });
   const wsKategori = XLSX.utils.json_to_sheet(categoriesData);
   const wsUsers = XLSX.utils.json_to_sheet(defaultUsers);
   const wsNotif = XLSX.utils.json_to_sheet(emptyLogs, {
@@ -436,6 +342,22 @@ async function deleteTransaction(id) {
     wb.Sheets['Transaksi'] = newWs;
     writeWorkbook(wb);
     return deleted;
+  });
+}
+
+/**
+ * Clear all transaction records
+ */
+async function clearAllTransactions() {
+  return withWriteLock(async () => {
+    await initExcel();
+    const wb = readWorkbook();
+    const emptyTransactions = [];
+    wb.Sheets['Transaksi'] = XLSX.utils.json_to_sheet(emptyTransactions, {
+      header: ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Jumlah', 'Keterangan', 'User', 'Dibuat', 'Diubah']
+    });
+    writeWorkbook(wb, true);
+    return { success: true };
   });
 }
 
@@ -763,6 +685,7 @@ module.exports = {
   addTransaction,
   updateTransaction,
   deleteTransaction,
+  clearAllTransactions,
   getCategories,
   addCategory,
   updateCategory,
