@@ -278,20 +278,25 @@
                 <option value="Semua">Semua Anggota</option>
               </select>
 
+              <button type="button" class="btn-secondary btn-reset-filter" onclick="resetTransactionFilters()">
+                🔄 Reset
+              </button>
+
               <div class="filter-date-box">
                 <input type="date" id="filter-start-date" title="Dari tanggal" onchange="loadTransactionsTable(1)">
                 <span style="font-size: 12px; color: var(--text-muted);">-</span>
                 <input type="date" id="filter-end-date" title="Sampai tanggal" onchange="loadTransactionsTable(1)">
               </div>
-
-              <button type="button" class="btn-secondary" style="padding: 8px 12px;" onclick="resetTransactionFilters()">
-                Reset
-              </button>
             </div>
 
             <!-- Filter Summary -->
-            <div id="tx-filter-summary" style="padding: 8px 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px;">
+            <div id="tx-filter-summary" style="padding: 8px 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 12px;">
               Memuat data...
+            </div>
+
+            <!-- Mobile Table Scroll Hint -->
+            <div class="mobile-table-hint">
+              <span>👉 Geser tabel ke kanan untuk melihat rincian & aksi</span>
             </div>
 
             <!-- Table Responsive -->
@@ -332,18 +337,22 @@
         <!-- ========================================== -->
         <section id="tab-reports" class="tab-pane">
           <!-- Month Selector Bar -->
-          <div class="card" style="padding: 16px 24px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <button type="button" class="btn-secondary" onclick="changeReportMonth(-1)">◀ Bulan Lalu</button>
-                <div style="display: flex; gap: 8px;">
+          <div class="card report-toolbar-card" style="margin-bottom: 20px;">
+            <div class="report-toolbar">
+              <div class="report-month-controls">
+                <button type="button" class="btn-secondary btn-month-nav" onclick="changeReportMonth(-1)" title="Bulan Sebelumnya">
+                  ◀ <span class="hide-mobile">Bulan Lalu</span>
+                </button>
+                <div class="report-select-group">
                   <select id="report-month-select" class="filter-select"></select>
                   <select id="report-year-select" class="filter-select"></select>
                 </div>
-                <button type="button" class="btn-secondary" onclick="changeReportMonth(1)">Bulan Berikutnya ▶</button>
+                <button type="button" class="btn-secondary btn-month-nav" onclick="changeReportMonth(1)" title="Bulan Berikutnya">
+                  <span class="hide-mobile">Bulan Berikutnya</span> ▶
+                </button>
               </div>
 
-              <button type="button" class="btn-secondary" onclick="downloadExcelFile()">
+              <button type="button" class="btn-secondary btn-report-export" onclick="downloadExcelFile()">
                 <span>📊</span> Export Excel Bulan Ini
               </button>
             </div>
@@ -423,8 +432,11 @@
 
           <!-- Category Breakdown Table -->
           <div class="card">
-            <div class="card-title" style="margin-bottom: 16px;">
+            <div class="card-title" style="margin-bottom: 12px;">
               <span>📑</span> Rincian Detail per Kategori
+            </div>
+            <div class="mobile-table-hint">
+              <span>👉 Geser tabel ke kanan untuk melihat persentase & nominal</span>
             </div>
             <div class="table-responsive">
               <table class="modern-table">
@@ -533,8 +545,8 @@
               </button>
             </div>
 
-            <div style="background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px;">
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
+              <div class="setting-db-grid">
                 <div>
                   <div style="font-size: 12px; color: var(--text-muted);">Status Database:</div>
                   <div id="setting-sync-status-badge" style="margin-top: 4px;">Memuat...</div>
@@ -550,7 +562,7 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+            <div class="setting-actions-row">
               <a id="btn-open-spreadsheet" href="#" target="_blank" class="btn-primary" style="display: none; text-decoration: none; align-items: center; gap: 8px;">
                 <span>📊</span> Buka Google Spreadsheet di Drive
               </a>
@@ -620,6 +632,9 @@
 
             <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-light);">
               <h4 style="font-size: 14px; margin-bottom: 12px;">Riwayat Pengiriman Notifikasi Terbaru:</h4>
+              <div class="mobile-table-hint">
+                <span>👉 Geser tabel untuk melihat status riwayat pengiriman</span>
+              </div>
               <div class="table-responsive">
                 <table class="modern-table">
                   <thead>
