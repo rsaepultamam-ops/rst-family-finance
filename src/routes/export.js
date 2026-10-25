@@ -17,9 +17,9 @@ const gasDb = require('../services/gasDatabaseService');
 router.use(authMiddleware);
 
 /**
- * GET /api/export - Download Excel file (.xlsx)
+ * GET /api/export & /api/export/excel - Download Excel file (.xlsx)
  */
-router.get('/', async (req, res) => {
+router.get(['/', '/excel'], async (req, res) => {
   try {
     const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `keuangan_keluarga_rst_${todayStr}.xlsx`;
