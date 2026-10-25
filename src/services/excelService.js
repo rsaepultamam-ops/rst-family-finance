@@ -8,6 +8,7 @@ const {
   generateCategoryId,
   generateLogId
 } = require('../utils/generateId');
+const gasDb = require('./gasDatabaseService');
 
 const isVercel = Boolean(process.env.VERCEL);
 const DATA_DIR = isVercel ? '/tmp' : path.join(__dirname, '../../data');
@@ -188,12 +189,16 @@ function migrateDefaultUsers(wb) {
  * Initialize default Excel file if it does not exist or sync from Google Drive
  */
 async function initExcel() {
-  const { hasSyncedInInstance, downloadFromDrive } = require('./googleDriveService');
-
-  // If already synced from Drive in this instance and file exists, we're ready
-  if (hasSyncedInInstance() && fs.existsSync(EXCEL_PATH)) {
+  if (gasDb.isGasConfigured()) {
     return;
   }
+
+  // If local file exists, it is ready immediately without blocking on network
+  if (fs.existsSync(EXCEL_PATH)) {
+    return;
+  }
+
+  const { hasSyncedInInstance, downloadFromDrive } = require('./googleDriveService');
 
   if (initPromise) {
     return initPromise;
@@ -275,6 +280,10 @@ async function writeWorkbook(wb, syncToDrive = true) {
 // ============================================
 
 async function getTransactions(filters = {}) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getTransactions(filters);
+  }
+
   await initExcel();
   const wb = readWorkbook();
   const ws = wb.Sheets['Transaksi'];
@@ -329,11 +338,19 @@ async function getTransactions(filters = {}) {
 }
 
 async function getTransactionById(id) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getTransactionById(id);
+  }
+
   const transactions = await getTransactions();
   return transactions.find(t => t.ID === id) || null;
 }
 
 async function addTransaction(data) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.addTransaction(data);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -361,6 +378,10 @@ async function addTransaction(data) {
 }
 
 async function updateTransaction(id, updateData) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.updateTransaction(id, updateData);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -390,6 +411,10 @@ async function updateTransaction(id, updateData) {
 }
 
 async function deleteTransaction(id) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.deleteTransaction(id);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -415,6 +440,10 @@ async function deleteTransaction(id) {
  * Clear all transaction records
  */
 async function clearAllTransactions() {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.clearAllTransactions();
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -432,6 +461,10 @@ async function clearAllTransactions() {
 // ============================================
 
 async function getCategories(includeInactive = false) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getCategories(includeInactive);
+  }
+
   await initExcel();
   const wb = readWorkbook();
   const ws = wb.Sheets['Kategori'];
@@ -452,6 +485,10 @@ async function getCategories(includeInactive = false) {
 }
 
 async function addCategory(data) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.addCategory(data);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -485,6 +522,10 @@ async function addCategory(data) {
 }
 
 async function updateCategory(id, data) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.updateCategory(id, data);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -512,6 +553,10 @@ async function updateCategory(id, data) {
 }
 
 async function deleteCategory(id) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.deleteCategory(id);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -543,6 +588,10 @@ async function deleteCategory(id) {
 // ============================================
 
 async function getUsers() {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getUsers();
+  }
+
   await initExcel();
   const wb = readWorkbook();
   const ws = wb.Sheets['Users'];
@@ -556,6 +605,10 @@ async function getUsers() {
 }
 
 async function getUserByUsername(username) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getUserByUsername(username);
+  }
+
   const users = await getUsers();
   const q = (username || '').toLowerCase().trim();
   return users.find(u => {
@@ -570,11 +623,23 @@ async function getUserByUsername(username) {
 }
 
 async function getUserById(id) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getUserById(id);
+  }
+
   const users = await getUsers();
   return users.find(u => u.ID === id) || null;
 }
 
 async function addUser(data) {
+  if (gasDb.isGasConfigured()) {
+    const hashedPassword = await hashPassword(data.password);
+    return gasDb.addUser({
+      ...data,
+      password: hashedPassword
+    });
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -612,6 +677,14 @@ async function addUser(data) {
 }
 
 async function updateUser(id, updateData) {
+  if (gasDb.isGasConfigured()) {
+    const payload = { ...updateData };
+    if (payload.password) {
+      payload.password = await hashPassword(payload.password);
+    }
+    return gasDb.updateUser(id, payload);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -642,6 +715,10 @@ async function updateUser(id, updateData) {
 }
 
 async function deleteUser(id) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.deleteUser(id);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -668,6 +745,10 @@ async function deleteUser(id) {
 // ============================================
 
 async function getSettings(autoInit = true) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getSettings();
+  }
+
   if (!fs.existsSync(EXCEL_PATH)) {
     if (autoInit && !initPromise) {
       await initExcel();
@@ -693,6 +774,10 @@ async function getSettings(autoInit = true) {
 }
 
 async function updateSetting(key, value) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.updateSetting(key, value);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();
@@ -718,6 +803,10 @@ async function updateSetting(key, value) {
 }
 
 async function getNotificationLogs() {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.getNotificationLogs();
+  }
+
   await initExcel();
   const wb = readWorkbook();
   const ws = wb.Sheets['Notifikasi_Log'];
@@ -727,6 +816,10 @@ async function getNotificationLogs() {
 }
 
 async function addNotificationLog(logData) {
+  if (gasDb.isGasConfigured()) {
+    return gasDb.addNotificationLog(logData);
+  }
+
   return withWriteLock(async () => {
     await initExcel();
     const wb = readWorkbook();

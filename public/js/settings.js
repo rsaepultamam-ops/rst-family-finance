@@ -15,13 +15,16 @@ async function loadSettingsPage() {
       const s = syncRes.data;
       const elStatus = document.getElementById('setting-sync-status-badge');
       const elLastSync = document.getElementById('setting-last-sync-time');
-      const elLocalPath = document.getElementById('setting-local-path');
+      const elSheetName = document.getElementById('setting-spreadsheet-name');
+      const btnOpenSheet = document.getElementById('btn-open-spreadsheet');
 
       if (elStatus) {
         if (s.status === 'synced') {
-          elStatus.innerHTML = `<span class="badge-pill badge-active">☁️ Tersinkronisasi Google Drive</span>`;
+          elStatus.innerHTML = `<span class="badge-pill badge-active">☁️ Google Apps Script (Drive) Aktif</span>`;
         } else if (s.status === 'local_active') {
-          elStatus.innerHTML = `<span class="badge-pill" style="background:#e0f2fe; color:#0369a1;">💾 Penyimpanan Excel Lokal Aktif</span>`;
+          elStatus.innerHTML = `<span class="badge-pill" style="background:#e0f2fe; color:#0369a1;">💾 Penyimpanan Excel Lokal</span>`;
+        } else if (s.status === 'error') {
+          elStatus.innerHTML = `<span class="badge-pill badge-inactive" title="${s.error || ''}">⚠️ Masalah Koneksi Cloud</span>`;
         } else {
           elStatus.innerHTML = `<span class="badge-pill badge-inactive">${s.status}</span>`;
         }
@@ -31,14 +34,17 @@ async function loadSettingsPage() {
         elLastSync.textContent = s.lastSync ? new Date(s.lastSync).toLocaleString('id-ID') : 'Belum pernah';
       }
 
-      if (elLocalPath) {
-        elLocalPath.textContent = s.localFilePath;
+      if (elSheetName) {
+        elSheetName.textContent = s.spreadsheetName || (s.mode === 'google_apps_script' ? 'RST Family Finance Database' : 'File Excel Lokal (data/keuangan_keluarga.xlsx)');
       }
 
-      const permBox = document.getElementById('setting-permanent-sync-box');
-      const refreshToken = s.refreshToken || API.getGoogleRefreshToken();
-      if (permBox) {
-        permBox.style.display = (s.isConfigured || refreshToken) ? 'block' : 'none';
+      if (btnOpenSheet) {
+        if (s.spreadsheetUrl) {
+          btnOpenSheet.href = s.spreadsheetUrl;
+          btnOpenSheet.style.display = 'inline-flex';
+        } else {
+          btnOpenSheet.style.display = 'none';
+        }
       }
     }
 

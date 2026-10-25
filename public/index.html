@@ -526,17 +526,17 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">
-                <span>☁️</span> Sinkronisasi Cloud (Google Drive) & Excel
+                <span>☁️</span> Database Google Drive (Google Apps Script)
               </div>
               <button type="button" id="btn-manual-sync" class="btn-primary" onclick="triggerManualSync()">
-                🔄 Sinkronkan Sekarang
+                🔄 Uji Koneksi / Sinkronkan
               </button>
             </div>
 
             <div style="background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px;">
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
                 <div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Status Sinkronisasi:</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Status Database:</div>
                   <div id="setting-sync-status-badge" style="margin-top: 4px;">Memuat...</div>
                 </div>
                 <div>
@@ -544,46 +544,31 @@
                   <strong id="setting-last-sync-time" style="font-size: 13px; color: var(--text-primary);">-</strong>
                 </div>
                 <div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Lokasi Database Lokal:</div>
-                  <span id="setting-local-path" style="font-size: 12px; font-family: monospace; color: var(--text-secondary); word-break: break-all;">-</span>
+                  <div style="font-size: 12px; color: var(--text-muted);">Target Google Spreadsheet:</div>
+                  <span id="setting-spreadsheet-name" style="font-size: 13px; font-weight: 600; color: var(--text-primary); word-break: break-all;">-</span>
                 </div>
               </div>
             </div>
 
             <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
-              <a href="/api/sync/auth" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-                <span>🔗</span> Hubungkan Akun Google Drive (1-Klik)
+              <a id="btn-open-spreadsheet" href="#" target="_blank" class="btn-primary" style="display: none; text-decoration: none; align-items: center; gap: 8px;">
+                <span>📊</span> Buka Google Spreadsheet di Drive
               </a>
               <button type="button" class="btn-secondary" onclick="downloadExcelFile()">
                 <span>📥</span> Download File Excel (.xlsx) Lengkap
               </button>
             </div>
 
-            <!-- Multi-device / Permanent Cloud Sync Banner -->
-            <div id="setting-permanent-sync-box" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <div>
-                  <div style="font-weight: 700; color: #166534; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-                    <span>🛡️</span> Token Google Drive Aktif di Browser Ini
-                  </div>
-                  <div style="font-size: 12px; color: #15803d; margin-top: 4px;">
-                    Sinkronisasi otomatis berjalan di browser ini. Agar HP anggota keluarga lain langsung terhubung tanpa klik apa pun:
-                  </div>
-                </div>
-                <button type="button" class="btn-secondary" onclick="copyGoogleRefreshToken()" style="background: #ffffff; border-color: #86efac; color: #166534; font-weight: 600; font-size: 13px;">
-                  📋 Salin GOOGLE_REFRESH_TOKEN
-                </button>
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 16px; font-size: 13px; color: #1e40af;">
+              <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                <span>🚀</span> Bebas Google Cloud Console: Database Berjalan via Google Apps Script
               </div>
-              <div style="margin-top: 8px; font-size: 12px; color: #166534; line-height: 1.5;">
-                👉 Masukkan token yang disalin ke <a href="https://vercel.com/rst-solution/rst-family-finance/settings/environment-variables" target="_blank" style="color: #15803d; font-weight: 700; text-decoration: underline;">Vercel Environment Variables</a> dengan nama <code>GOOGLE_REFRESH_TOKEN</code>.
-              </div>
-            </div>
-
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 14px; font-size: 13px; color: #1e40af;">
-              <strong>💡 Cara Menghubungkan Google Drive:</strong>
-              <p style="margin-top: 4px;">
-                Di Google Cloud Console proyek Anda (<strong>dompetharian-501510</strong>), buat <em>OAuth 2.0 Client ID (Web Application)</em>, lalu masukkan <code>GOOGLE_CLIENT_ID</code> dan <code>GOOGLE_CLIENT_SECRET</code> ke file <code>.env</code> (atau Vercel Environment Variables). Setelah itu klik tombol biru di atas untuk mengizinkan akses sekali klik.
+              <p style="margin: 0; line-height: 1.6; color: #1e3a8a;">
+                Aplikasi sekarang menggunakan <strong>Google Apps Script Web App</strong> untuk membaca dan menulis data langsung ke Google Spreadsheet di Google Drive pribadi Anda. Tidak perlu lagi membuat project di Google Cloud Console, tidak perlu OAuth 2.0 Client ID/Secret, dan tidak akan ada masalah token kedaluwarsa!
               </p>
+              <div style="margin-top: 10px; font-size: 12px; color: #2563eb;">
+                Panduan setup lengkap dapat dilihat di file <code>gas/README_SETUP.md</code>. Cukup masukkan <code>GAS_WEB_APP_URL</code> ke file <code>.env</code> atau Vercel Environment Variables.
+              </div>
             </div>
           </div>
 

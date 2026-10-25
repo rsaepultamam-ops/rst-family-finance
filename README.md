@@ -36,10 +36,11 @@ Aplikasi web **multi-user** modern untuk pencatatan keuangan keluarga sehari-har
    - Admin dapat menambahkan akun anggota keluarga baru, mengatur role, dan mereset password.
    - Anggota keluarga dapat login dari HP masing-masing dan mencatat transaksi secara bersamaan.
 
-6. **📁 Basis Data Excel & Cloud Sync**
-   - Semua data (Transaksi, Kategori, Users, Log Notifikasi, dan Settings) disimpan rapi di `data/keuangan_keluarga.xlsx`.
-   - Tombol download langsung file `.xlsx` kapan saja untuk backup atau analisa di Excel.
-   - Arsitektur sinkronisasi Google Drive untuk menjaga data selalu sama di semua perangkat.
+6. **📁 Basis Data Google Drive (Apps Script) & Excel**
+   - Mendukung penyimpanan langsung ke **Google Spreadsheet di Google Drive via Google Apps Script (GAS)** tanpa butuh Google Cloud Console.
+   - Mode offline/lokal dengan file Excel `data/keuangan_keluarga.xlsx`.
+   - Tombol download langsung file `.xlsx` kapan saja untuk backup atau analisa offline.
+   - Skrip migrasi data 1-klik (`node scripts/migrateExcelToGas.js`).
 
 7. **🔔 Notifikasi & Pengingat Otomatis**
    - Pengingat harian otomatis pada jam tertentu (default: 20:00 WIB).
@@ -76,6 +77,20 @@ Buka browser dan akses:
 ```
 http://localhost:3000
 ```
+
+---
+
+## ☁️ Menghubungkan ke Google Drive via Google Apps Script (Tanpa Google Cloud)
+
+Aplikasi dapat langsung terhubung ke Google Drive Anda tanpa perlu konfigurasi Google Cloud Console:
+1. Ikuti panduan 5 menit di [gas/README_SETUP.md](file:///d:/App%20by%20AI/RST%20Family/gas/README_SETUP.md).
+2. Buat Google Spreadsheet baru di Drive Anda, lalu tempel kode dari [gas/Code.gs](file:///d:/App%20by%20AI/RST%20Family/gas/Code.gs) ke menu **Extensions > Apps Script**.
+3. Jalankan fungsi `setupDatabase` sekali, lalu klik **Deploy > New deployment (Web app)** dengan akses **Anyone**.
+4. Masukkan Web App URL yang dihasilkan ke variabel `GAS_WEB_APP_URL` di file `.env` atau Vercel.
+5. *(Opsional)* Migrasikan data Excel lama Anda ke Google Spreadsheet dengan menjalankan:
+   ```bash
+   node scripts/migrateExcelToGas.js
+   ```
 
 ---
 
