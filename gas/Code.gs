@@ -27,16 +27,7 @@ var SECRET_KEY = "rst_family_secure_token_2026";
  * Endpoint POST untuk semua operasi CRUD Database
  */
 function doPost(e) {
-  var lock = LockService.getScriptLock();
-  var hasLock = lock.tryLock(15000); // Tunggu antrian hingga 15 detik agar aman dari race-condition
-
-  if (!hasLock) {
-    return jsonResponse({
-      success: false,
-      message: "Database Google Sheets sedang sibuk. Silakan coba kembali sesaat lagi."
-    }, 429);
-  }
-
+  var lock = null;
   try {
     var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";
     var payload = JSON.parse(raw);
@@ -52,6 +43,27 @@ function doPost(e) {
     }
 
     var action = payload.action;
+
+    // OPTIMASI PERFORMA: Kunci write lock HANYA untuk aksi yang mengubah data
+    // Aksi baca (read) berjalan paralel tanpa antrian/blocking
+    var writeActions = [
+      "addTransaction", "updateTransaction", "deleteTransaction", "clearAllTransactions",
+      "addCategory", "updateCategory", "deleteCategory",
+      "addUser", "updateUser", "deleteUser",
+      "updateSetting", "batchImport", "setup", "addNotificationLog"
+    ];
+
+    if (writeActions.indexOf(action) !== -1) {
+      lock = LockService.getScriptLock();
+      var hasLock = lock.tryLock(8000);
+      if (!hasLock) {
+        return jsonResponse({
+          success: false,
+          message: "Database Google Sheets sedang sibuk menulis data lain. Silakan coba sesaat lagi."
+        }, 429);
+      }
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var result = null;
 
@@ -191,7 +203,9 @@ function doPost(e) {
       stack: err.stack
     }, 500);
   } finally {
-    lock.releaseLock();
+    if (lock) {
+      try { lock.releaseLock(); } catch (e) {}
+    }
   }
 }
 
@@ -375,8 +389,13 @@ function setupHeader(sheet, headers) {
 // =========================================================================
 
 function getSheetObjects(sheet) {
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  var data = sheet.getDataRange().getValues();
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow <= 1 || lastCol < 1) return [];
+
+  // getRange(1, 1, lastRow, lastCol) jauh lebih cepat dan hemat memori daripada getDataRange()
+  var data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   var headers = data[0];
   var rows = [];
 
@@ -435,6 +454,9 @@ function handleUpdateRow(ss, sheetName, keyCol, idVal, updateData, allowedCols) 
       if (diubahIdx !== -1 && !updateData.Diubah) {
         sheet.getRange(i + 1, diubahIdx + 1).setValue(new Date().toISOString());
       }
+      if (sheetName.indexOf("Trans") !== -1) {
+        try { CacheService.getScriptCache().remove("tx_cache_all"); } catch (e) {}
+      }
       return handleGetRowById(ss, sheetName, keyCol, idVal);
     }
   }
@@ -450,6 +472,9 @@ function handleDeleteRow(ss, sheetName, keyCol, idVal) {
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][keyIdx]) === String(idVal)) {
       sheet.deleteRow(i + 1);
+      if (sheetName.indexOf("Trans") !== -1) {
+        try { CacheService.getScriptCache().remove("tx_cache_all"); } catch (e) {}
+      }
       return { id: idVal, deleted: true };
     }
   }
@@ -461,11 +486,32 @@ function handleDeleteRow(ss, sheetName, keyCol, idVal) {
 // =========================================================================
 
 function handleGetTransactions(ss, filters) {
-  var sheet = resolveSheet(ss, "Transactions");
-  var list = getSheetObjects(sheet);
+  var cache = CacheService.getScriptCache();
+  var isSimple = (!filters || Object.keys(filters).length === 0);
+  var list = null;
+
+  if (isSimple) {
+    var cached = cache.get("tx_cache_all");
+    if (cached) {
+      try { list = JSON.parse(cached); } catch (e) {}
+    }
+  }
+
+  if (!list) {
+    var sheet = resolveSheet(ss, "Transactions");
+    list = getSheetObjects(sheet);
+    if (list.length > 0 && list.length < 500) {
+      try {
+        var str = JSON.stringify(list);
+        if (str.length < 90000) {
+          cache.put("tx_cache_all", str, 45); // Cache 45 detik
+        }
+      } catch (e) {}
+    }
+  }
 
   // Filter
-  if (filters.search) {
+  if (filters && filters.search) {
     var q = String(filters.search).toLowerCase();
     list = list.filter(function(t) {
       return (String(t.Keterangan || '').toLowerCase().indexOf(q) !== -1) ||
@@ -473,27 +519,27 @@ function handleGetTransactions(ss, filters) {
     });
   }
 
-  if (filters.tipe && filters.tipe !== "Semua") {
+  if (filters && filters.tipe && filters.tipe !== "Semua") {
     list = list.filter(function(t) { return t.Tipe === filters.tipe; });
   }
 
-  if (filters.kategori && filters.kategori !== "Semua") {
+  if (filters && filters.kategori && filters.kategori !== "Semua") {
     list = list.filter(function(t) { return t.Kategori === filters.kategori; });
   }
 
-  if (filters.user && filters.user !== "Semua") {
+  if (filters && filters.user && filters.user !== "Semua") {
     list = list.filter(function(t) { return t.User === filters.user; });
   }
 
-  if (filters.startDate) {
+  if (filters && filters.startDate) {
     list = list.filter(function(t) { return String(t.Tanggal) >= String(filters.startDate); });
   }
 
-  if (filters.endDate) {
+  if (filters && filters.endDate) {
     list = list.filter(function(t) { return String(t.Tanggal) <= String(filters.endDate); });
   }
 
-  if (filters.month && filters.year) {
+  if (filters && filters.month && filters.year) {
     var mStr = String(filters.month).padStart(2, '0');
     var prefix = filters.year + "-" + mStr;
     list = list.filter(function(t) { return String(t.Tanggal || '').startsWith(prefix); });
@@ -526,6 +572,8 @@ function handleAddTransaction(ss, data) {
   ];
 
   sheet.appendRow(row);
+  // Evict cache
+  try { CacheService.getScriptCache().remove("tx_cache_all"); } catch (e) {}
   return {
     ID: id,
     Tanggal: data.tanggal,
@@ -546,6 +594,7 @@ function handleClearTransactions(ss) {
   if (lastRow > 1) {
     sheet.deleteRows(2, lastRow - 1);
   }
+  try { CacheService.getScriptCache().remove("tx_cache_all"); } catch (e) {}
   return { success: true, cleared: true };
 }
 

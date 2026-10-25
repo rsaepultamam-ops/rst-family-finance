@@ -83,13 +83,47 @@ async function sendGasRequest(action, extraPayload = {}, timeoutMs = 30000, isRe
 }
 
 // ============================================
+// HIGH-SPEED IN-MEMORY CACHE (Mengurangi Latensi Google Drive)
+// ============================================
+const memoryCache = new Map();
+
+function getFromCache(key) {
+  const item = memoryCache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expires) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+function setToCache(key, data, ttlSeconds = 30) {
+  memoryCache.set(key, {
+    data,
+    expires: Date.now() + (ttlSeconds * 1000)
+  });
+}
+
+function invalidateCache(prefix = null) {
+  if (!prefix) {
+    memoryCache.clear();
+    return;
+  }
+  for (const k of memoryCache.keys()) {
+    if (k.startsWith(prefix)) {
+      memoryCache.delete(k);
+    }
+  }
+}
+
+// ============================================
 // HEALTH & DIAGNOSTICS
 // ============================================
 
 async function setupDatabase() {
+  invalidateCache();
   return sendGasRequest('setup');
 }
-
 
 async function ping() {
   return sendGasRequest('ping', {}, 10000);
@@ -100,8 +134,17 @@ async function ping() {
 // ============================================
 
 async function getTransactions(filters = {}) {
+  const cacheKey = 'tx_' + JSON.stringify(filters);
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const list = await sendGasRequest('getTransactions', { params: filters });
-  return Array.isArray(list) ? list : [];
+  const result = Array.isArray(list) ? list : [];
+  // Cache daftar transaksi selama 20 detik untuk response instan pada dashboard & laporan
+  setToCache(cacheKey, result, 20);
+  return result;
 }
 
 async function getTransactionById(id) {
@@ -109,18 +152,22 @@ async function getTransactionById(id) {
 }
 
 async function addTransaction(data) {
+  invalidateCache('tx_');
   return sendGasRequest('addTransaction', { data });
 }
 
 async function updateTransaction(id, updateData) {
+  invalidateCache('tx_');
   return sendGasRequest('updateTransaction', { id, data: updateData });
 }
 
 async function deleteTransaction(id) {
+  invalidateCache('tx_');
   return sendGasRequest('deleteTransaction', { id });
 }
 
 async function clearAllTransactions() {
+  invalidateCache('tx_');
   return sendGasRequest('clearAllTransactions');
 }
 
@@ -129,19 +176,30 @@ async function clearAllTransactions() {
 // ============================================
 
 async function getCategories(includeInactive = false) {
+  const cacheKey = 'cat_' + includeInactive;
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const list = await sendGasRequest('getCategories', { includeInactive });
-  return Array.isArray(list) ? list : [];
+  const result = Array.isArray(list) ? list : [];
+  setToCache(cacheKey, result, 60); // Cache 60 detik
+  return result;
 }
 
 async function addCategory(data) {
+  invalidateCache('cat_');
   return sendGasRequest('addCategory', { data });
 }
 
 async function updateCategory(id, data) {
+  invalidateCache('cat_');
   return sendGasRequest('updateCategory', { id, data });
 }
 
 async function deleteCategory(id) {
+  invalidateCache('cat_');
   return sendGasRequest('deleteCategory', { id });
 }
 
@@ -150,8 +208,15 @@ async function deleteCategory(id) {
 // ============================================
 
 async function getUsers() {
+  const cached = getFromCache('users_all');
+  if (cached) {
+    return cached;
+  }
+
   const list = await sendGasRequest('getUsers');
-  return Array.isArray(list) ? list : [];
+  const result = Array.isArray(list) ? list : [];
+  setToCache('users_all', result, 60); // Cache 60 detik
+  return result;
 }
 
 async function getUserByUsername(username) {
@@ -163,14 +228,17 @@ async function getUserById(id) {
 }
 
 async function addUser(data) {
+  invalidateCache('users');
   return sendGasRequest('addUser', { data });
 }
 
 async function updateUser(id, updateData) {
+  invalidateCache('users');
   return sendGasRequest('updateUser', { id, data: updateData });
 }
 
 async function deleteUser(id) {
+  invalidateCache('users');
   return sendGasRequest('deleteUser', { id });
 }
 
@@ -179,11 +247,19 @@ async function deleteUser(id) {
 // ============================================
 
 async function getSettings() {
+  const cached = getFromCache('settings_all');
+  if (cached) {
+    return cached;
+  }
+
   const settings = await sendGasRequest('getSettings');
-  return settings || {};
+  const result = settings || {};
+  setToCache('settings_all', result, 60);
+  return result;
 }
 
 async function updateSetting(key, value) {
+  invalidateCache('settings');
   return sendGasRequest('updateSetting', { key, value });
 }
 
@@ -205,6 +281,7 @@ async function addNotificationLog(logData) {
 // ============================================
 
 async function batchImport(bundle) {
+  invalidateCache(); // Bersihkan semua cache
   return sendGasRequest('batchImport', { data: bundle }, 60000);
 }
 
@@ -212,6 +289,7 @@ module.exports = {
   isGasConfigured,
   ping,
   setupDatabase,
+  invalidateCache,
   getTransactions,
   getTransactionById,
   addTransaction,

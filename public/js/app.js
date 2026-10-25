@@ -206,6 +206,26 @@ function switchTab(tabId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function refreshCurrentActiveView() {
+  const tabId = currentActiveTab || 'dashboard';
+  if (tabId === 'dashboard' && typeof loadDashboard === 'function') {
+    loadDashboard();
+  } else if (tabId === 'transactions' && typeof loadTransactionsTable === 'function') {
+    loadTransactionsTable(typeof currentTxPage !== 'undefined' ? currentTxPage : 1);
+  } else if (tabId === 'reports' && typeof loadMonthlyReport === 'function') {
+    loadMonthlyReport();
+  } else if (tabId === 'categories' && typeof loadCategoriesPage === 'function') {
+    loadCategoriesPage();
+  } else if (tabId === 'users' && typeof loadUsersPage === 'function') {
+    loadUsersPage();
+  } else if (tabId === 'settings' && typeof loadSettingsPage === 'function') {
+    loadSettingsPage();
+  } else if (typeof loadDashboard === 'function') {
+    loadDashboard();
+  }
+}
+window.refreshCurrentActiveView = refreshCurrentActiveView;
+
 function toggleMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('sidebar-overlay');

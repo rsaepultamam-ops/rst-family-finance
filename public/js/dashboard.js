@@ -220,14 +220,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.success) {
-          showToast('✅ Transaksi berhasil disimpan ke Excel!', 'success');
+          showToast('✅ Transaksi berhasil dicatat!', 'success');
           closeModal('modal-add-transaction');
           form.reset();
 
-          // Refresh current page data
-          loadDashboard();
-          if (typeof loadTransactionsTable === 'function') loadTransactionsTable();
-          if (typeof loadMonthlyReport === 'function') loadMonthlyReport();
+          // Refresh tampilan aktif secara cepat
+          if (typeof refreshCurrentActiveView === 'function') {
+            refreshCurrentActiveView();
+          } else {
+            loadDashboard();
+          }
         }
       } catch (err) {
         showToast(err.message || 'Gagal menyimpan transaksi', 'error');

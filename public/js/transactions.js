@@ -139,9 +139,11 @@ async function deleteTransactionPrompt(id) {
     const res = await API.delete(`/api/transactions/${id}`);
     if (res.success) {
       showToast('✅ Transaksi berhasil dihapus!', 'success');
-      await loadTransactionsTable(1);
-      if (typeof loadDashboard === 'function') await loadDashboard();
-      if (typeof loadMonthlyReport === 'function') await loadMonthlyReport();
+      if (typeof refreshCurrentActiveView === 'function') {
+        refreshCurrentActiveView();
+      } else {
+        loadTransactionsTable(1);
+      }
     }
   } catch (err) {
     showToast(err.message || 'Gagal menghapus transaksi', 'error', 6000);
@@ -232,11 +234,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.success) {
-          showToast('Transaksi berhasil diperbarui di Excel', 'success');
+          showToast('✅ Transaksi berhasil diperbarui', 'success');
           closeModal('modal-edit-transaction');
-          loadTransactionsTable(currentTxPage);
-          if (typeof loadDashboard === 'function') loadDashboard();
-          if (typeof loadMonthlyReport === 'function') loadMonthlyReport();
+          if (typeof refreshCurrentActiveView === 'function') {
+            refreshCurrentActiveView();
+          } else {
+            loadTransactionsTable(currentTxPage);
+          }
         }
       } catch (err) {
         showToast(err.message || 'Gagal mengubah transaksi', 'error');
