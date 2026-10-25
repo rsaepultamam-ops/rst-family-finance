@@ -280,16 +280,16 @@ async function writeWorkbook(wb, syncToDrive = true) {
 // ============================================
 
 async function getTransactions(filters = {}) {
+  let list = [];
   if (gasDb.isGasConfigured()) {
-    return gasDb.getTransactions(filters);
+    list = await gasDb.getAllTransactionsCached();
+  } else {
+    await initExcel();
+    const wb = readWorkbook();
+    const ws = wb.Sheets['Transaksi'];
+    if (!ws) return [];
+    list = XLSX.utils.sheet_to_json(ws) || [];
   }
-
-  await initExcel();
-  const wb = readWorkbook();
-  const ws = wb.Sheets['Transaksi'];
-  if (!ws) return [];
-
-  let list = XLSX.utils.sheet_to_json(ws) || [];
 
   // Filter by search (keterangan)
   if (filters.search) {

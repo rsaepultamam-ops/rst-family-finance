@@ -133,7 +133,24 @@ async function ping() {
 // TRANSAKSI
 // ============================================
 
+async function getAllTransactionsCached() {
+  const cached = getFromCache('tx_master');
+  if (cached) {
+    return cached;
+  }
+
+  const list = await sendGasRequest('getTransactions', {});
+  const result = Array.isArray(list) ? list : [];
+  setToCache('tx_master', result, 30); // Cache 30 detik di memory
+  return result;
+}
+
 async function getTransactions(filters = {}) {
+  // Jika tanpa filter, langsung gunakan master cache
+  if (!filters || Object.keys(filters).length === 0) {
+    return getAllTransactionsCached();
+  }
+
   const cacheKey = 'tx_' + JSON.stringify(filters);
   const cached = getFromCache(cacheKey);
   if (cached) {
@@ -142,7 +159,6 @@ async function getTransactions(filters = {}) {
 
   const list = await sendGasRequest('getTransactions', { params: filters });
   const result = Array.isArray(list) ? list : [];
-  // Cache daftar transaksi selama 20 detik untuk response instan pada dashboard & laporan
   setToCache(cacheKey, result, 20);
   return result;
 }
@@ -290,6 +306,7 @@ module.exports = {
   ping,
   setupDatabase,
   invalidateCache,
+  getAllTransactionsCached,
   getTransactions,
   getTransactionById,
   addTransaction,
