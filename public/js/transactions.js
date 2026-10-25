@@ -60,7 +60,10 @@ async function loadTransactionsTable(page = 1) {
     if (tbody) {
       tbody.innerHTML = txs.map(t => {
         const isExp = t.Tipe === 'Pengeluaran';
+        const prefix = isExp ? '- ' : '+ ';
         const colorClass = isExp ? 'text-danger' : 'text-success';
+        const cat = (window.allCategoriesCache || []).find(c => c.Nama.toLowerCase() === (t.Kategori || '').toLowerCase()) || {};
+        const catIcon = cat.Ikon || (isExp ? '💸' : '💰');
         const uRole = String(currentUser.Role || currentUser.role || '').toLowerCase();
         const uName = String(currentUser.Username || currentUser.username || '').toLowerCase();
         const tUser = String(t.User || '').toLowerCase();
@@ -75,7 +78,7 @@ async function loadTransactionsTable(page = 1) {
               </span>
             </td>
             <td>
-              <strong>${t.Kategori}</strong>
+              <span style="margin-right: 4px;">${catIcon}</span><strong>${t.Kategori}</strong>
             </td>
             <td>${t.Keterangan || '<span style="color:#cbd5e1">—</span>'}</td>
             <td>
@@ -249,7 +252,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function resetTransactionFilters() {
+  const search = document.getElementById('filter-search');
+  const tipe = document.getElementById('filter-tipe');
+  const kategori = document.getElementById('filter-kategori');
+  const user = document.getElementById('filter-user');
+  const startDate = document.getElementById('filter-start-date');
+  const endDate = document.getElementById('filter-end-date');
+
+  if (search) search.value = '';
+  if (tipe) tipe.value = 'Semua';
+  if (kategori) kategori.value = 'Semua';
+  if (user) user.value = 'Semua';
+  if (startDate) startDate.value = '';
+  if (endDate) endDate.value = '';
+
+  loadTransactionsTable(1);
+}
+
 window.loadTransactionsTable = loadTransactionsTable;
 window.initTransactionFilters = initTransactionFilters;
+window.resetTransactionFilters = resetTransactionFilters;
 window.deleteTransactionPrompt = deleteTransactionPrompt;
 window.editTransactionPrompt = editTransactionPrompt;
+
