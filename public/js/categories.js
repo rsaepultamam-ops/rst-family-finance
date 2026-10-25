@@ -18,30 +18,62 @@ const CURATED_COLORS = [
 ];
 
 async function loadCategoriesPage() {
+  const expGrid = document.getElementById('cat-grid-pengeluaran');
+  const incGrid = document.getElementById('cat-grid-pemasukan');
+
+  // Loading state
+  if (expGrid && (!expGrid.children.length || expGrid.innerText.includes('Belum ada'))) {
+    expGrid.innerHTML = '<div style="color: var(--text-muted); font-size: 13px; padding: 16px; grid-column: 1 / -1;">⏳ Memuat kategori pengeluaran...</div>';
+  }
+  if (incGrid && (!incGrid.children.length || incGrid.innerText.includes('Belum ada'))) {
+    incGrid.innerHTML = '<div style="color: var(--text-muted); font-size: 13px; padding: 16px; grid-column: 1 / -1;">⏳ Memuat kategori pemasukan...</div>';
+  }
+
   try {
     const res = await API.get('/api/categories?includeInactive=true');
     const categories = res.data || [];
     window.allCategoriesCache = categories;
-
-    const expGrid = document.getElementById('cat-grid-pengeluaran');
-    const incGrid = document.getElementById('cat-grid-pemasukan');
+    if (typeof allCategoriesCache !== 'undefined') {
+      allCategoriesCache = categories;
+    }
 
     const expenses = categories.filter(c => c.Tipe === 'Pengeluaran');
     const incomes = categories.filter(c => c.Tipe === 'Pemasukan');
 
     if (expGrid) {
-      expGrid.innerHTML = expenses.map(c => renderCategoryCard(c)).join('');
+      if (expenses.length > 0) {
+        expGrid.innerHTML = expenses.map(c => renderCategoryCard(c)).join('');
+      } else {
+        expGrid.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: var(--bg-surface); border: 1px dashed var(--border-light); border-radius: var(--radius-md);">
+            <p style="margin-bottom: 8px;">Belum ada kategori pengeluaran.</p>
+            <button type="button" class="btn-secondary" style="font-size: 12px; padding: 4px 12px;" onclick="loadCategoriesPage()">🔄 Muat Ulang</button>
+          </div>
+        `;
+      }
     }
 
     if (incGrid) {
-      incGrid.innerHTML = incomes.map(c => renderCategoryCard(c)).join('');
+      if (incomes.length > 0) {
+        incGrid.innerHTML = incomes.map(c => renderCategoryCard(c)).join('');
+      } else {
+        incGrid.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: var(--bg-surface); border: 1px dashed var(--border-light); border-radius: var(--radius-md);">
+            <p style="margin-bottom: 8px;">Belum ada kategori pemasukan.</p>
+            <button type="button" class="btn-secondary" style="font-size: 12px; padding: 4px 12px;" onclick="loadCategoriesPage()">🔄 Muat Ulang</button>
+          </div>
+        `;
+      }
     }
 
   } catch (err) {
     console.error('Error loading categories:', err);
     showToast('Gagal memuat kategori: ' + err.message, 'error');
+    if (expGrid) expGrid.innerHTML = '<div style="color: var(--danger); font-size: 13px; padding: 12px; grid-column: 1 / -1;">Gagal memuat data kategori.</div>';
+    if (incGrid) incGrid.innerHTML = '<div style="color: var(--danger); font-size: 13px; padding: 12px; grid-column: 1 / -1;">Gagal memuat data kategori.</div>';
   }
 }
+
 
 function renderCategoryCard(c) {
   const isCustom = c.Custom;
@@ -188,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (res.success) {
-          showToast(`Kategori "${nama}" berhasil ditambahkan ke Excel!`, 'success');
+          showToast(`Kategori "${nama}" berhasil ditambahkan!`, 'success');
           closeModal('modal-add-category');
           catForm.reset();
           loadCategoriesPage();
