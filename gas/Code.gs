@@ -260,8 +260,8 @@ function setupDatabase() {
   setupHeader(wsUsers, userHeader);
   if (wsUsers.getLastRow() <= 1) {
     var defaultUsers = [
-      ["USR-001", "Risman (Kepala Keluarga)", "risman", "$2a$10$na9joBokngV/l2nAyv/9kO9UcW0/PreOVJ4ICJNRQ3CSIKeOZnJfy", "admin", "risman@keluarga.rst", "", true, new Date().toISOString()],
-      ["USR-002", "Siti Julaeha (Anggota Keluarga)", "sitijulaeha", "$2a$10$QqLSCBA6mR3ftT0MjKR4WeUCUEegeTn8c18UF2IcEfESm.0EkKwQm", "anggota", "siti@keluarga.rst", "", true, new Date().toISOString()]
+      ["USR-001", "Risman (Kepala Keluarga)", "risman", "$2a$10$GZNoRJFZnmBWLWvJY2ZuK./hZIVJ4V0.pw/jc/dsGkWJO8K7NxCHm", "admin", "risman@keluarga.rst", "", true, new Date().toISOString()],
+      ["USR-002", "Siti Julaeha (Anggota Keluarga)", "sitijulaeha", "$2a$10$rsPoQxkpVD7e1fYROtqRK.mFSsae7uJta5JNfvUF8biWhx6mHh/mq", "anggota", "siti@keluarga.rst", "", true, new Date().toISOString()]
     ];
     wsUsers.getRange(2, 1, defaultUsers.length, userHeader.length).setValues(defaultUsers);
   }

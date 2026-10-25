@@ -60,8 +60,8 @@ let initPromise = null;
 function createDefaultWorkbookSync() {
   if (fs.existsSync(EXCEL_PATH)) return;
 
-  const adminPasswordHash = '$2a$10$na9joBokngV/l2nAyv/9kO9UcW0/PreOVJ4ICJNRQ3CSIKeOZnJfy'; // admin123
-  const sitiPasswordHash = '$2a$10$QqLSCBA6mR3ftT0MjKR4WeUCUEegeTn8c18UF2IcEfESm.0EkKwQm'; // siti123
+  const adminPasswordHash = '$2a$10$GZNoRJFZnmBWLWvJY2ZuK./hZIVJ4V0.pw/jc/dsGkWJO8K7NxCHm'; // admin123
+  const sitiPasswordHash = '$2a$10$rsPoQxkpVD7e1fYROtqRK.mFSsae7uJta5JNfvUF8biWhx6mHh/mq'; // siti123
 
   const defaultUsers = [
     {
