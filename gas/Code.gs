@@ -513,7 +513,36 @@ function handleClearTransactions(ss) {
 // =========================================================================
 
 function handleGetCategories(ss, includeInactive) {
-  var sheet = ss.getSheetByName("Categories");
+  var sheet = ss.getSheetByName("Categories") || ss.getSheetByName("Kategori");
+  if (!sheet) {
+    sheet = getOrCreateSheet(ss, "Categories");
+    setupHeader(sheet, ["ID", "Nama", "Tipe", "Ikon", "Warna", "Aktif", "Custom", "Dibuat Oleh"]);
+  }
+
+  // Jika baris data masih kosong, otomatis isi dengan 17 kategori default
+  if (sheet.getLastRow() <= 1) {
+    var defaultCats = [
+      ["CAT-001", "Makanan & Minuman", "Pengeluaran", "🍚", "#FF6B6B", true, false, "system"],
+      ["CAT-002", "Transportasi", "Pengeluaran", "🚗", "#4ECDC4", true, false, "system"],
+      ["CAT-003", "Rumah Tangga", "Pengeluaran", "🏠", "#45B7D1", true, false, "system"],
+      ["CAT-004", "Listrik & Air", "Pengeluaran", "💡", "#FFA726", true, false, "system"],
+      ["CAT-005", "Pulsa & Internet", "Pengeluaran", "📱", "#AB47BC", true, false, "system"],
+      ["CAT-006", "Kesehatan", "Pengeluaran", "🏥", "#EF5350", true, false, "system"],
+      ["CAT-007", "Pendidikan", "Pengeluaran", "🎓", "#5C6BC0", true, false, "system"],
+      ["CAT-008", "Pakaian", "Pengeluaran", "👕", "#EC407A", true, false, "system"],
+      ["CAT-009", "Hiburan", "Pengeluaran", "🎉", "#FFA000", true, false, "system"],
+      ["CAT-010", "Sosial & Sumbangan", "Pengeluaran", "🤝", "#66BB6A", true, false, "system"],
+      ["CAT-011", "Tabungan & Investasi", "Pengeluaran", "💰", "#26A69A", true, false, "system"],
+      ["CAT-012", "Lain-lain", "Pengeluaran", "📦", "#78909C", true, false, "system"],
+      ["CAT-101", "Gaji", "Pemasukan", "💼", "#10B981", true, false, "system"],
+      ["CAT-102", "Bonus", "Pemasukan", "💵", "#059669", true, false, "system"],
+      ["CAT-103", "Usaha", "Pemasukan", "🏪", "#0D9488", true, false, "system"],
+      ["CAT-104", "Hadiah/Transfer", "Pemasukan", "🎁", "#14B8A6", true, false, "system"],
+      ["CAT-105", "Lain-lain", "Pemasukan", "📦", "#6B7280", true, false, "system"]
+    ];
+    sheet.getRange(2, 1, defaultCats.length, 8).setValues(defaultCats);
+  }
+
   var list = getSheetObjects(sheet);
 
   list = list.map(function(c) {

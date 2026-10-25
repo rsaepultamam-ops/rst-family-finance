@@ -462,7 +462,51 @@ async function clearAllTransactions() {
 
 async function getCategories(includeInactive = false) {
   if (gasDb.isGasConfigured()) {
-    return gasDb.getCategories(includeInactive);
+    try {
+      let list = await gasDb.getCategories(includeInactive);
+      if (Array.isArray(list) && list.length > 0) {
+        return list;
+      }
+
+      // Jika kategori di Google Spreadsheet masih kosong, otomatis seed 17 kategori bawaan
+      console.log('[CATEGORIES] Sheet kategori di Google Apps Script masih kosong. Otomatis seeding default categories...');
+      const defaultCategoriesFormatted = DEFAULT_CATEGORIES.map(c => ({
+        ID: c.id,
+        Nama: c.nama,
+        Tipe: c.tipe,
+        Ikon: c.ikon,
+        Warna: c.warna,
+        Aktif: c.aktif,
+        Custom: c.custom,
+        'Dibuat Oleh': c.dibuatOleh
+      }));
+
+      // Kirim batchImport ke GAS agar tersimpan permanen di Google Spreadsheet
+      try {
+        await gasDb.batchImport({ categories: defaultCategoriesFormatted });
+        const refreshed = await gasDb.getCategories(includeInactive);
+        if (Array.isArray(refreshed) && refreshed.length > 0) {
+          return refreshed;
+        }
+      } catch (importErr) {
+        console.warn('[CATEGORIES] Gagal auto-seed ke Google Apps Script:', importErr.message);
+      }
+
+      // Fallback agar frontend tidak pernah kosong
+      return defaultCategoriesFormatted.filter(c => includeInactive || c.Aktif);
+    } catch (err) {
+      console.warn('[CATEGORIES] Gagal mengambil dari Google Apps Script, menggunakan fallback default:', err.message);
+      return DEFAULT_CATEGORIES.map(c => ({
+        ID: c.id,
+        Nama: c.nama,
+        Tipe: c.tipe,
+        Ikon: c.ikon,
+        Warna: c.warna,
+        Aktif: c.aktif,
+        Custom: c.custom,
+        'Dibuat Oleh': c.dibuatOleh
+      })).filter(c => includeInactive || c.Aktif);
+    }
   }
 
   await initExcel();
