@@ -307,6 +307,48 @@ function getOrCreateSheet(ss, name) {
   return sheet;
 }
 
+function resolveSheet(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (sheet) return sheet;
+
+  // Cek alias Bahasa Indonesia / Inggris
+  var aliases = {
+    "Transactions": "Transaksi",
+    "Transaksi": "Transactions",
+    "Categories": "Kategori",
+    "Kategori": "Categories",
+    "Users": "Pengguna",
+    "Pengguna": "Users",
+    "Settings": "Pengaturan",
+    "Pengaturan": "Settings",
+    "Notifikasi_Log": "Notifications",
+    "Notifications": "Notifikasi_Log"
+  };
+
+  if (aliases[sheetName]) {
+    sheet = ss.getSheetByName(aliases[sheetName]);
+    if (sheet) return sheet;
+  }
+
+  // Jika belum ada sama sekali, otomatis buat sheet baru dengan header standar
+  sheet = getOrCreateSheet(ss, sheetName);
+  var defaultHeadersMap = {
+    "Transactions": ["ID", "Tanggal", "Tipe", "Kategori", "Jumlah", "Keterangan", "User", "Dibuat", "Diubah"],
+    "Transaksi": ["ID", "Tanggal", "Tipe", "Kategori", "Jumlah", "Keterangan", "User", "Dibuat", "Diubah"],
+    "Categories": ["ID", "Nama", "Tipe", "Ikon", "Warna", "Aktif", "Custom", "Dibuat Oleh"],
+    "Kategori": ["ID", "Nama", "Tipe", "Ikon", "Warna", "Aktif", "Custom", "Dibuat Oleh"],
+    "Users": ["ID", "Nama", "Username", "Password", "Role", "Email", "Telegram Chat ID", "Aktif", "Dibuat"],
+    "Settings": ["Key", "Value", "Diubah"],
+    "Notifikasi_Log": ["ID", "Tipe", "Channel", "Penerima", "Status", "Waktu Kirim"]
+  };
+
+  if (defaultHeadersMap[sheetName]) {
+    setupHeader(sheet, defaultHeadersMap[sheetName]);
+  }
+
+  return sheet;
+}
+
 function setupHeader(sheet, headers) {
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
@@ -361,7 +403,7 @@ function getSheetObjects(sheet) {
 }
 
 function handleGetRowById(ss, sheetName, keyCol, idVal) {
-  var sheet = ss.getSheetByName(sheetName);
+  var sheet = resolveSheet(ss, sheetName);
   var list = getSheetObjects(sheet);
   for (var i = 0; i < list.length; i++) {
     if (String(list[i][keyCol]) === String(idVal)) {
@@ -372,7 +414,7 @@ function handleGetRowById(ss, sheetName, keyCol, idVal) {
 }
 
 function handleUpdateRow(ss, sheetName, keyCol, idVal, updateData, allowedCols) {
-  var sheet = ss.getSheetByName(sheetName);
+  var sheet = resolveSheet(ss, sheetName);
   if (!sheet) throw new Error("Sheet tidak ditemukan: " + sheetName);
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
@@ -400,7 +442,7 @@ function handleUpdateRow(ss, sheetName, keyCol, idVal, updateData, allowedCols) 
 }
 
 function handleDeleteRow(ss, sheetName, keyCol, idVal) {
-  var sheet = ss.getSheetByName(sheetName);
+  var sheet = resolveSheet(ss, sheetName);
   if (!sheet) throw new Error("Sheet tidak ditemukan: " + sheetName);
   var data = sheet.getDataRange().getValues();
   var keyIdx = data[0].indexOf(keyCol);
@@ -419,7 +461,7 @@ function handleDeleteRow(ss, sheetName, keyCol, idVal) {
 // =========================================================================
 
 function handleGetTransactions(ss, filters) {
-  var sheet = ss.getSheetByName("Transactions");
+  var sheet = resolveSheet(ss, "Transactions");
   var list = getSheetObjects(sheet);
 
   // Filter
@@ -468,8 +510,7 @@ function handleGetTransactions(ss, filters) {
 }
 
 function handleAddTransaction(ss, data) {
-  var sheet = ss.getSheetByName("Transactions");
-  if (!sheet) throw new Error("Sheet Transactions tidak ditemukan.");
+  var sheet = resolveSheet(ss, "Transactions");
 
   var id = data.id || ("TRX-" + Utilities.formatDate(new Date(data.tanggal || new Date()), "GMT+7", "yyyyMMdd") + "-" + Utilities.getUuid().substr(0, 4).toUpperCase());
   var row = [
@@ -499,7 +540,7 @@ function handleAddTransaction(ss, data) {
 }
 
 function handleClearTransactions(ss) {
-  var sheet = ss.getSheetByName("Transactions");
+  var sheet = resolveSheet(ss, "Transactions");
   if (!sheet) return { success: true };
   var lastRow = sheet.getLastRow();
   if (lastRow > 1) {
@@ -513,11 +554,7 @@ function handleClearTransactions(ss) {
 // =========================================================================
 
 function handleGetCategories(ss, includeInactive) {
-  var sheet = ss.getSheetByName("Categories") || ss.getSheetByName("Kategori");
-  if (!sheet) {
-    sheet = getOrCreateSheet(ss, "Categories");
-    setupHeader(sheet, ["ID", "Nama", "Tipe", "Ikon", "Warna", "Aktif", "Custom", "Dibuat Oleh"]);
-  }
+  var sheet = resolveSheet(ss, "Categories");
 
   // Jika baris data masih kosong, otomatis isi dengan 17 kategori default
   if (sheet.getLastRow() <= 1) {
@@ -565,7 +602,7 @@ function handleGetCategories(ss, includeInactive) {
 }
 
 function handleAddCategory(ss, data) {
-  var sheet = ss.getSheetByName("Categories");
+  var sheet = resolveSheet(ss, "Categories");
   var list = getSheetObjects(sheet);
 
   var exists = list.some(function(c) {
@@ -610,7 +647,7 @@ function handleDeleteCategory(ss, id) {
 // =========================================================================
 
 function handleGetUsers(ss) {
-  var sheet = ss.getSheetByName("Users");
+  var sheet = resolveSheet(ss, "Users");
   var list = getSheetObjects(sheet);
 
   return list.map(function(u) {
@@ -645,7 +682,7 @@ function handleGetUserByUsername(ss, username) {
 }
 
 function handleAddUser(ss, data) {
-  var sheet = ss.getSheetByName("Users");
+  var sheet = resolveSheet(ss, "Users");
   var list = getSheetObjects(sheet);
 
   var existing = list.some(function(u) {
@@ -691,7 +728,7 @@ function handleDeleteUser(ss, id) {
 // =========================================================================
 
 function handleGetSettings(ss) {
-  var sheet = ss.getSheetByName("Settings");
+  var sheet = resolveSheet(ss, "Settings");
   var list = getSheetObjects(sheet);
   var settings = {};
   for (var i = 0; i < list.length; i++) {
@@ -701,8 +738,7 @@ function handleGetSettings(ss) {
 }
 
 function handleUpdateSetting(ss, key, value) {
-  var sheet = ss.getSheetByName("Settings");
-  if (!sheet) throw new Error("Sheet Settings tidak ditemukan.");
+  var sheet = resolveSheet(ss, "Settings");
   var data = sheet.getDataRange().getValues();
 
   for (var i = 1; i < data.length; i++) {
@@ -727,13 +763,13 @@ function handleUpdateSetting(ss, key, value) {
 // =========================================================================
 
 function handleGetNotificationLogs(ss) {
-  var sheet = ss.getSheetByName("Notifikasi_Log");
+  var sheet = resolveSheet(ss, "Notifikasi_Log");
   var list = getSheetObjects(sheet);
   return list.reverse(); // Terbaru di atas
 }
 
 function handleAddNotificationLog(ss, data) {
-  var sheet = ss.getSheetByName("Notifikasi_Log");
+  var sheet = resolveSheet(ss, "Notifikasi_Log");
   if (!sheet) return null;
 
   var id = "LOG-" + Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd-HHmmss") + "-" + Utilities.getUuid().substr(0, 4);

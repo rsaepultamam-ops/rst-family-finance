@@ -139,7 +139,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Transaksi berhasil dicatat ke Excel.',
+      message: 'Transaksi berhasil dicatat.',
       data: newTx
     });
   } catch (err) {

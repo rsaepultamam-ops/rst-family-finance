@@ -90,4 +90,28 @@ router.post('/', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/sync/setup - Jalankan setup otomatis sheet Google Apps Script
+ */
+router.post('/setup', async (req, res) => {
+  try {
+    if (!gasDb.isGasConfigured()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google Apps Script belum dikonfigurasi.'
+      });
+    }
+
+    const setupRes = await gasDb.setupDatabase();
+    res.json({
+      success: true,
+      message: 'Inisialisasi tabel spreadsheet berhasil dilakukan.',
+      data: setupRes
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal inisialisasi sheet: ' + err.message });
+  }
+});
+
 module.exports = router;
+

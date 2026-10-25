@@ -23,7 +23,7 @@ function isGasConfigured() {
 /**
  * Mengirim request ke Google Apps Script Web App
  */
-async function sendGasRequest(action, extraPayload = {}, timeoutMs = 30000) {
+async function sendGasRequest(action, extraPayload = {}, timeoutMs = 30000, isRetry = false) {
   const url = getGasUrl();
   if (!url) {
     throw new Error('GAS_WEB_APP_URL belum dikonfigurasi di file .env atau Vercel Environment Variables.');
@@ -56,6 +56,19 @@ async function sendGasRequest(action, extraPayload = {}, timeoutMs = 30000) {
     });
 
     if (!json.success) {
+      const errMsg = String(json.message || '');
+      // Auto-recovery jika tabel/sheet belum dibuat di Google Spreadsheet
+      if (!isRetry && action !== 'setup' && (errMsg.includes('tidak ditemukan') || errMsg.includes('Sheet'))) {
+        console.log('[GAS] Sheet belum ada di Google Spreadsheet (' + errMsg + '). Menjalankan auto-setup database...');
+        try {
+          await sendGasRequest('setup', {}, 30000, true);
+          console.log('[GAS] Auto-setup database berhasil, mengulangi request: ' + action);
+          return await sendGasRequest(action, extraPayload, timeoutMs, true);
+        } catch (setupErr) {
+          console.warn('[GAS] Auto-setup database gagal:', setupErr.message);
+        }
+      }
+
       throw new Error(json.message || 'Terjadi kesalahan pada Google Apps Script database.');
     }
 
@@ -72,6 +85,11 @@ async function sendGasRequest(action, extraPayload = {}, timeoutMs = 30000) {
 // ============================================
 // HEALTH & DIAGNOSTICS
 // ============================================
+
+async function setupDatabase() {
+  return sendGasRequest('setup');
+}
+
 
 async function ping() {
   return sendGasRequest('ping', {}, 10000);
@@ -193,6 +211,7 @@ async function batchImport(bundle) {
 module.exports = {
   isGasConfigured,
   ping,
+  setupDatabase,
   getTransactions,
   getTransactionById,
   addTransaction,
